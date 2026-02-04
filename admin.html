@@ -1,192 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
-
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f172a;
-  color:#fff;
-  padding:15px;
-}
-.card{
-  background:#1e293b;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-}
-h2{text-align:center}
-input,textarea,button{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:none;
-  border-radius:8px;
-}
-button{
-  background:#22c55e;
-  font-weight:bold;
-  cursor:pointer;
-}
-.list{
-  background:#020617;
-  padding:10px;
-  border-radius:8px;
-}
-.item{
-  border-bottom:1px solid #334155;
-  padding:8px 0;
-}
-.verify{background:#38bdf8;margin-top:6px}
-small{color:#94a3b8}
+body{font-family:Arial;background:#eef2f5;padding:20px}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
+input,button{padding:10px;margin-top:8px;width:100%}
+button{background:#4f46e5;color:#fff;border:none;border-radius:6px}
+.order{border:1px solid #ddd;padding:10px;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<div class="card" id="loginBox">
-  <h2>Admin Login</h2>
-  <input id="email" placeholder="Admin Email">
-  <input id="pass" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="panel" style="display:none">
-
 <div class="card">
-  <h2>Price Per ID</h2>
-  <input id="price" type="number">
-  <button onclick="updatePrice()">Update</button>
+<h3>Price Update</h3>
+<input id="price" placeholder="Price per ID">
+<button onclick="setPrice()">Update</button>
 </div>
 
 <div class="card">
-  <h2>Add ID Stock</h2>
-  <textarea id="idData" rows="5"
-placeholder="username
-password
-phone
-email"></textarea>
-  <button onclick="addID()">Add ID</button>
+<h3>Add ID Stock</h3>
+<input id="u" placeholder="Username">
+<input id="p" placeholder="Password">
+<input id="ph" placeholder="Phone">
+<input id="e" placeholder="Email">
+<button onclick="addID()">Add ID</button>
 </div>
 
 <div class="card">
-  <h2>Available Stock</h2>
-  <div id="stock">0</div>
-</div>
-
-<div class="card">
-  <h2>Pending Orders</h2>
-  <div id="orders" class="list"></div>
-</div>
-
+<h3>Pending Orders</h3>
+<div id="orders"></div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import {getDatabase,ref,onValue,push,update,remove} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
-  authDomain: "database-7209.firebaseapp.com",
-  databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
-  projectId: "database-7209",
-  storageBucket: "database-7209.firebasestorage.app",
-  messagingSenderId: "690721900018",
-  appId: "1:690721900018:web:c8b2d04586b1fadf0a176b"
-};
+const app=initializeApp({
+ apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
+ databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
+});
+const db=getDatabase(app);
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-
-window.login=()=>{
-  signInWithEmailAndPassword(auth,email.value,pass.value)
-  .then(()=>{
-    loginBox.style.display="none";
-    panel.style.display="block";
-    loadStock();
-    loadOrders();
-  })
-  .catch(()=>alert("Login Failed"));
-};
-
-window.updatePrice=()=>{
-  set(ref(db,"settings/price"),Number(price.value));
-  alert("Price Updated");
-};
+window.setPrice=()=>update(ref(db,"settings"),{pricePerId:+price.value});
 
 window.addID=()=>{
-  const l=idData.value.trim().split("\n");
-  if(l.length<4) return alert("Invalid format");
-  push(ref(db,"ids"),{
-    username:l[0],
-    password:l[1],
-    phone:l[2],
-    email:l[3],
-    sold:false,
-    time:Date.now()
-  });
-  idData.value="";
-};
-
-function loadStock(){
-  onValue(ref(db,"ids"),snap=>{
-    let c=0;
-    snap.forEach(s=>{if(!s.val().sold) c++;});
-    stock.innerText=c;
-  });
+ push(ref(db,"stock"),{
+  username:u.value,password:p.value,phone:ph.value,email:e.value
+ });
+ alert("ID Added");
 }
 
-function loadOrders(){
-  onValue(ref(db,"orders"),snap=>{
-    orders.innerHTML="";
-    snap.forEach(s=>{
-      const o=s.val();
-      if(o.status==="pending"){
-        orders.innerHTML+=`
-        <div class="item">
-          Qty: ${o.qty} | ₹${o.amount}<br>
-          UTR: ${o.utr}<br>
-          <small>${new Date(o.time).toLocaleString()}</small>
-          <button class="verify"
-          onclick="verify('${s.key}',${o.qty})">
-          Verify & Deliver
-          </button>
-        </div>`;
-      }
-    });
-  });
-}
+onValue(ref(db,"orders"),snap=>{
+ orders.innerHTML="";
+ snap.forEach(o=>{
+  let v=o.val();
+  if(v.status=="pending"){
+   orders.innerHTML+=`
+   <div class="order">
+   Qty: ${v.qty}<br>UTR: ${v.utr||"-"}
+   <button onclick="verify('${o.key}',${v.qty})">Verify</button>
+   </div>`;
+  }
+ });
+});
 
-window.verify=(orderId,qty)=>{
-  let delivered=0;
-  onValue(ref(db,"ids"),snap=>{
-    snap.forEach(s=>{
-      if(!s.val().sold && delivered<qty){
-        update(ref(db,"ids/"+s.key),{sold:true});
-        push(ref(db,"deliveries/"+orderId),{
-          username:s.val().username,
-          password:s.val().password,
-          phone:s.val().phone,
-          email:s.val().email
-        });
-        delivered++;
-      }
-    });
-    if(delivered===qty){
-      update(ref(db,"orders/"+orderId),{status:"verified"});
-      alert("Delivered");
-    }else{
-      alert("Low Stock");
-    }
-  },{onlyOnce:true});
-};
+window.verify=async(id,qty)=>{
+ const stockSnap=await new Promise(r=>onValue(ref(db,"stock"),s=>r(s),{onlyOnce:true}));
+ let delivered={}; let c=0;
+
+ stockSnap.forEach(s=>{
+  if(c<qty){
+   delivered[s.key]=s.val();
+   remove(ref(db,"stock/"+s.key));
+   c++;
+  }
+ });
+
+ update(ref(db,"deliveries/"+id),delivered);
+ update(ref(db,"orders/"+id),{status:"verified"});
+ alert("Delivered");
+}
 </script>
-
 </body>
 </html>
