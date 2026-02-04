@@ -1,196 +1,223 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <style>
 body{
+  margin:0;
   font-family:Arial;
-  background:#f2f4f7;
-  padding:20px;
+  background:#0f172a;
+  color:#fff;
+  padding:15px;
 }
-.box{
-  background:#fff;
-  max-width:520px;
-  margin:auto;
-  padding:20px;
-  border-radius:10px;
-  box-shadow:0 0 15px rgba(0,0,0,.15);
+.card{
+  background:#1e293b;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
 }
-h2{text-align:center}
+h2{text-align:center;margin:0 0 10px}
 input,textarea,button{
   width:100%;
-  padding:10px;
-  margin-top:10px;
-}
-.row{
-  display:flex;
-  gap:6px;
-}
-.row textarea{flex:1}
-.row button{
-  width:120px;
-  background:#28a745;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
 }
 button{
-  background:#007bff;
-  border:none;
-  color:#fff;
-  border-radius:5px;
+  background:#22c55e;
+  font-weight:bold;
   cursor:pointer;
 }
-.order{
-  border:1px solid #ddd;
-  margin-top:10px;
+.list{
+  background:#020617;
+  border-radius:8px;
   padding:10px;
-  border-radius:5px;
 }
-.hidden{display:none}
-.count{
-  text-align:center;
-  font-weight:bold;
-  margin-bottom:10px;
+.item{
+  border-bottom:1px solid #334155;
+  padding:8px 0;
 }
+.verify{
+  background:#38bdf8;
+  margin-top:6px;
+}
+small{color:#94a3b8}
 </style>
 </head>
 
 <body>
 
-<!-- 🔐 LOGIN -->
-<div class="box" id="loginBox">
+<!-- LOGIN -->
+<div class="card" id="loginBox">
   <h2>Admin Login</h2>
-  <input type="email" id="email" placeholder="Admin Email">
-  <input type="password" id="password" placeholder="Password">
+  <input id="email" placeholder="Admin Email">
+  <input id="pass" type="password" placeholder="Password">
   <button onclick="login()">Login</button>
-  <div id="msg"></div>
 </div>
 
-<!-- 🧠 ADMIN PANEL -->
-<div class="box hidden" id="panel">
+<!-- PANEL -->
+<div id="panel" style="display:none">
 
-  <div class="count">
-    Total IDs in Stock: <span id="stockCount">0</span>
-  </div>
-
-  <h2>Add IDs</h2>
-  <div class="row">
-    <textarea id="idsInput" placeholder="One ID per line"></textarea>
-    <button onclick="addIds()">Add IDs</button>
-  </div>
-
-  <hr>
-
-  <h2>Orders (Payment Verification)</h2>
-  <div id="orders"></div>
+<!-- PRICE -->
+<div class="card">
+  <h2>ID Price</h2>
+  <input id="price" type="number" placeholder="Price per ID">
+  <button onclick="updatePrice()">Update Price</button>
 </div>
 
+<!-- ADD ID -->
+<div class="card">
+  <h2>Add ID Stock</h2>
+  <textarea id="idData" rows="5"
+placeholder="username
+password
+phone
+email"></textarea>
+  <button onclick="addID()">Add ID</button>
+</div>
+
+<!-- STOCK COUNT -->
+<div class="card">
+  <h2>Available IDs</h2>
+  <div id="stock">Loading...</div>
+</div>
+
+<!-- ORDERS -->
+<div class="card">
+  <h2>Pending Orders</h2>
+  <div id="orders" class="list"></div>
+</div>
+
+</div>
+
+<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
+/* 🔥 YOUR API */
 const firebaseConfig = {
   apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
   authDomain: "database-7209.firebaseapp.com",
   databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
-  projectId: "database-7209"
+  projectId: "database-7209",
+  storageBucket: "database-7209.firebasestorage.app",
+  messagingSenderId: "690721900018",
+  appId: "1:690721900018:web:c8b2d04586b1fadf0a176b",
+  measurementId: "G-6Z60T6DZPH"
 };
 
 const app = initializeApp(firebaseConfig);
+getAnalytics(app);
+
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-/* 🔐 LOGIN */
-window.login = () => {
-  signInWithEmailAndPassword(
-    auth,
-    email.value.trim(),
-    password.value.trim()
-  ).catch(e => msg.innerText = e.code);
-};
-
-/* 🔁 AUTH CHECK */
-onAuthStateChanged(auth,user=>{
-  if(user){
-    loginBox.classList.add("hidden");
-    panel.classList.remove("hidden");
-    watchStock();
+/* LOGIN */
+window.login = ()=>{
+  signInWithEmailAndPassword(auth,email.value,pass.value)
+  .then(()=>{
+    loginBox.style.display="none";
+    panel.style.display="block";
     loadOrders();
-  }
-});
-
-/* 📊 STOCK COUNT */
-function watchStock(){
-  const idsRef = ref(db,"ids");
-  onValue(idsRef,snap=>{
-    stockCount.innerText = snap.size || snap.numChildren();
-  });
-}
-
-/* ➕ ADD IDS */
-window.addIds = () => {
-  const list = idsInput.value.trim().split("\n").filter(x=>x);
-  const idsRef = ref(db,"ids");
-
-  list.forEach(id=>{
-    push(idsRef,id.trim());
-  });
-
-  idsInput.value="";
+    loadStock();
+  })
+  .catch(()=>alert("Invalid Login"));
 };
 
-/* 📦 LOAD ORDERS */
-function loadOrders(){
-  const ordersRef = ref(db,"orders");
-  onValue(ordersRef,snap=>{
-    orders.innerHTML="";
-    snap.forEach(o=>{
-      const d = o.val();
-      orders.innerHTML += `
-        <div class="order">
-          Order: ${o.key}<br>
-          Qty: ${d.qty}<br>
-          UTR: ${d.utr || "N/A"}<br>
-          Status: <b>${d.status}</b><br>
+/* PRICE UPDATE */
+window.updatePrice = ()=>{
+  set(ref(db,"settings/pricePerId"),Number(price.value));
+  alert("Price Updated");
+};
 
-          ${d.status==="pending" ? 
-            `<button onclick="verify('${o.key}',${d.qty})">Verify Payment</button>` 
-          : `<small>✅ IDs Sent</small>`}
-        </div>
-      `;
+/* ADD ID (NO REPEAT) */
+window.addID = ()=>{
+  const l=idData.value.trim().split("\n");
+  if(l.length<4) return alert("Wrong format");
+
+  push(ref(db,"ids"),{
+    username:l[0],
+    password:l[1],
+    phone:l[2],
+    email:l[3],
+    sold:false,
+    time:Date.now()
+  });
+
+  idData.value="";
+  alert("ID Added");
+};
+
+/* STOCK COUNT */
+function loadStock(){
+  onValue(ref(db,"ids"),snap=>{
+    let c=0;
+    snap.forEach(s=>{
+      if(!s.val().sold) c++;
+    });
+    stock.innerHTML="Available IDs: "+c;
+  });
+}
+
+/* LOAD ORDERS */
+function loadOrders(){
+  onValue(ref(db,"orders"),snap=>{
+    orders.innerHTML="";
+    snap.forEach(s=>{
+      const o=s.val();
+      if(o.status==="pending"){
+        orders.innerHTML+=`
+        <div class="item">
+          Qty: ${o.qty} | ₹${o.amount}<br>
+          UTR: ${o.utr}<br>
+          <small>${new Date(o.time).toLocaleString()}</small>
+          <button class="verify"
+          onclick="verify('${s.key}',${o.qty})">
+          Verify & Deliver
+          </button>
+        </div>`;
+      }
     });
   });
 }
 
-/* ✅ VERIFY PAYMENT + SEND IDS */
-window.verify = (orderId,qty) => {
-  const idsRef = ref(db,"ids");
+/* VERIFY & DELIVER */
+window.verify = (orderId,qty)=>{
+  let delivered=0;
 
-  onValue(idsRef,snap=>{
-    let ids=[];
-    snap.forEach(c=>ids.push({key:c.key,val:c.val()}));
-
-    if(ids.length < qty){
-      alert("Not enough IDs in stock");
-      return;
-    }
-
-    let selected = ids.slice(0,qty);
-    let updates = {};
-
-    selected.forEach(i=>{
-      updates["ids/"+i.key] = null;
+  onValue(ref(db,"ids"),snap=>{
+    snap.forEach(s=>{
+      if(!s.val().sold && delivered<qty){
+        update(ref(db,"ids/"+s.key),{sold:true});
+        delivered++;
+      }
     });
 
-    updates["orders/"+orderId+"/status"] = "verified";
-    updates["orders/"+orderId+"/ids"] =
-      selected.map(x=>x.val).join("\n");
+    if(delivered===qty){
+      update(ref(db,"orders/"+orderId),{
+        status:"verified",
+        delivered:true
+      });
 
-    update(ref(db),updates);
-    alert("Payment verified & IDs sent");
-  },{once:true});
+      push(ref(db,"sales"),{
+        orderId,
+        qty,
+        time:Date.now()
+      });
+
+      alert("Payment Verified & IDs Delivered");
+    }else{
+      alert("Not enough stock");
+    }
+  },{onlyOnce:true});
 };
 </script>
 
