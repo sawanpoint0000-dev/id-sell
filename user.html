@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Buy IDs</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>
+body{
+  font-family:Arial;
+  background:#eef2f5;
+  padding:20px;
+}
+.box{
+  background:#fff;
+  max-width:420px;
+  margin:auto;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 0 15px rgba(0,0,0,.15);
+}
+h2{text-align:center}
+select,input,button,textarea{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+button{
+  background:#28a745;
+  border:none;
+  color:#fff;
+  border-radius:5px;
+  cursor:pointer;
+}
+button:disabled{background:#aaa}
+.hidden{display:none}
+.status{
+  text-align:center;
+  margin-top:10px;
+  font-weight:bold;
+}
+pre{
+  background:#f4f4f4;
+  padding:10px;
+  white-space:pre-wrap;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>Buy IDs</h2>
+
+  <select id="qty">
+    <option value="">Select Quantity</option>
+    <option value="1">1 ID</option>
+    <option value="2">2 IDs</option>
+    <option value="5">5 IDs</option>
+    <option value="10">10 IDs</option>
+  </select>
+
+  <input type="number" id="customQty" placeholder="Or enter custom quantity">
+
+  <button id="buyBtn" disabled>Buy Now</button>
+
+  <div id="payment" class="hidden">
+    <p><b>Pay using UPI</b></p>
+    <img id="qr" width="200"><br>
+    <input id="utr" placeholder="Enter UTR after payment">
+    <button onclick="submitUTR()">Submit UTR</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div id="idsBox" class="hidden">
+    <h3>Your IDs</h3>
+    <pre id="ids"></pre>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, push, set, onValue } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
+  authDomain: "database-7209.firebaseapp.com",
+  databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
+  projectId: "database-7209"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const pricePerId = 100; // 💰 per ID price
+let orderId = null;
+
+/* 🔢 QTY SELECT */
+qty.onchange = customQty.oninput = () => {
+  const q = customQty.value || qty.value;
+  buyBtn.disabled = !q || q <= 0;
+};
+
+/* 🛒 BUY */
+buyBtn.onclick = () => {
+  const q = parseInt(customQty.value || qty.value);
+  const amount = q * pricePerId;
+
+  orderId = push(ref(db,"orders")).key;
+
+  set(ref(db,"orders/"+orderId),{
+    qty:q,
+    amount,
+    status:"pending"
+  });
+
+  // 🔗 UPI QR
+  const upi = `upi://pay?pa=YOURUPI@upi&pn=ID%20Seller&am=${amount}&cu=INR`;
+  qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(upi);
+
+  payment.classList.remove("hidden");
+  status.innerText = "Payment pending...";
+};
+
+/* 💳 SUBMIT UTR */
+window.submitUTR = () => {
+  if(!utr.value.trim()){
+    alert("Enter UTR");
+    return;
+  }
+  set(ref(db,"orders/"+orderId+"/utr"),utr.value.trim());
+  status.innerText = "Waiting for admin verification...";
+  watchOrder();
+};
+
+/* 👀 WATCH ORDER */
+function watchOrder(){
+  onValue(ref(db,"orders/"+orderId),snap=>{
+    const d = snap.val();
+    if(d.status==="verified"){
+      status.innerText = "Payment verified ✅";
+      idsBox.classList.remove("hidden");
+      ids.innerText = d.ids;
+    }
+  });
+}
+</script>
+
+</body>
+</html>
