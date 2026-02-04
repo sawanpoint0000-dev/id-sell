@@ -4,18 +4,48 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
+
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:#fff;padding:15px}
-.card{background:#1e293b;padding:15px;border-radius:12px;margin-bottom:15px}
-h2{text-align:center;margin:0 0 10px}
-input,textarea,button{width:100%;padding:12px;margin-top:8px;border:none;border-radius:8px;font-size:14px}
-button{background:#22c55e;font-weight:bold;cursor:pointer}
-.list{background:#020617;border-radius:8px;padding:10px}
-.item{border-bottom:1px solid #334155;padding:8px 0}
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:#fff;
+  padding:15px;
+}
+.card{
+  background:#1e293b;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
+h2{text-align:center}
+input,textarea,button{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:8px;
+}
+button{
+  background:#22c55e;
+  font-weight:bold;
+  cursor:pointer;
+}
+.list{
+  background:#020617;
+  padding:10px;
+  border-radius:8px;
+}
+.item{
+  border-bottom:1px solid #334155;
+  padding:8px 0;
+}
 .verify{background:#38bdf8;margin-top:6px}
 small{color:#94a3b8}
 </style>
 </head>
+
 <body>
 
 <div class="card" id="loginBox">
@@ -26,27 +56,33 @@ small{color:#94a3b8}
 </div>
 
 <div id="panel" style="display:none">
-  <div class="card">
-    <h2>ID Price</h2>
-    <input id="price" type="number" placeholder="Price per ID">
-    <button onclick="updatePrice()">Update Price</button>
-  </div>
 
-  <div class="card">
-    <h2>Add ID Stock</h2>
-    <textarea id="idData" rows="5" placeholder="username\npassword\nphone\nemail"></textarea>
-    <button onclick="addID()">Add ID</button>
-  </div>
+<div class="card">
+  <h2>Price Per ID</h2>
+  <input id="price" type="number">
+  <button onclick="updatePrice()">Update</button>
+</div>
 
-  <div class="card">
-    <h2>Available IDs</h2>
-    <div id="stock">Loading...</div>
-  </div>
+<div class="card">
+  <h2>Add ID Stock</h2>
+  <textarea id="idData" rows="5"
+placeholder="username
+password
+phone
+email"></textarea>
+  <button onclick="addID()">Add ID</button>
+</div>
 
-  <div class="card">
-    <h2>Pending Orders</h2>
-    <div id="orders" class="list"></div>
-  </div>
+<div class="card">
+  <h2>Available Stock</h2>
+  <div id="stock">0</div>
+</div>
+
+<div class="card">
+  <h2>Pending Orders</h2>
+  <div id="orders" class="list"></div>
+</div>
+
 </div>
 
 <script type="module">
@@ -59,7 +95,7 @@ const firebaseConfig = {
   authDomain: "database-7209.firebaseapp.com",
   databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
   projectId: "database-7209",
-  storageBucket: "database-7209.appspot.com",
+  storageBucket: "database-7209.firebasestorage.app",
   messagingSenderId: "690721900018",
   appId: "1:690721900018:web:c8b2d04586b1fadf0a176b"
 };
@@ -68,46 +104,44 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// LOGIN
-window.login = ()=>{
+window.login=()=>{
   signInWithEmailAndPassword(auth,email.value,pass.value)
   .then(()=>{
     loginBox.style.display="none";
     panel.style.display="block";
-    loadOrders();
     loadStock();
+    loadOrders();
   })
-  .catch(()=>alert("Invalid Login"));
+  .catch(()=>alert("Login Failed"));
 };
 
-// PRICE UPDATE
-window.updatePrice = ()=>{
-  if(price.value <= 0) return alert("Enter valid price");
-  set(ref(db,"settings/pricePerId"),Number(price.value));
+window.updatePrice=()=>{
+  set(ref(db,"settings/price"),Number(price.value));
   alert("Price Updated");
 };
 
-// ADD ID
-window.addID = ()=>{
+window.addID=()=>{
   const l=idData.value.trim().split("\n");
-  if(l.length<4) return alert("Wrong format (username,pass,phone,email)");
+  if(l.length<4) return alert("Invalid format");
   push(ref(db,"ids"),{
-    username:l[0], password:l[1], phone:l[2], email:l[3], sold:false, time:Date.now()
+    username:l[0],
+    password:l[1],
+    phone:l[2],
+    email:l[3],
+    sold:false,
+    time:Date.now()
   });
   idData.value="";
-  alert("ID Added");
 };
 
-// STOCK COUNT
 function loadStock(){
   onValue(ref(db,"ids"),snap=>{
     let c=0;
-    snap.forEach(s=>{ if(!s.val().sold) c++; });
-    stock.innerHTML="Available IDs: "+c;
+    snap.forEach(s=>{if(!s.val().sold) c++;});
+    stock.innerText=c;
   });
 }
 
-// LOAD ORDERS
 function loadOrders(){
   onValue(ref(db,"orders"),snap=>{
     orders.innerHTML="";
@@ -117,34 +151,42 @@ function loadOrders(){
         orders.innerHTML+=`
         <div class="item">
           Qty: ${o.qty} | ₹${o.amount}<br>
+          UTR: ${o.utr}<br>
           <small>${new Date(o.time).toLocaleString()}</small>
-          <button class="verify" onclick="verify('${s.key}',${o.qty})">Verify & Delivered</button>
+          <button class="verify"
+          onclick="verify('${s.key}',${o.qty})">
+          Verify & Deliver
+          </button>
         </div>`;
       }
     });
   });
 }
 
-// VERIFY & DELIVER
-window.verify = (orderId,qty)=>{
+window.verify=(orderId,qty)=>{
   let delivered=0;
   onValue(ref(db,"ids"),snap=>{
     snap.forEach(s=>{
       if(!s.val().sold && delivered<qty){
         update(ref(db,"ids/"+s.key),{sold:true});
+        push(ref(db,"deliveries/"+orderId),{
+          username:s.val().username,
+          password:s.val().password,
+          phone:s.val().phone,
+          email:s.val().email
+        });
         delivered++;
       }
     });
-
     if(delivered===qty){
-      update(ref(db,"orders/"+orderId),{status:"verified",delivered:true});
-      push(ref(db,"sales"),{orderId,qty,time:Date.now()});
-      alert("Payment Verified & IDs Delivered");
-    } else {
-      alert("Not enough stock");
+      update(ref(db,"orders/"+orderId),{status:"verified"});
+      alert("Delivered");
+    }else{
+      alert("Low Stock");
     }
   },{onlyOnce:true});
 };
 </script>
+
 </body>
 </html>
