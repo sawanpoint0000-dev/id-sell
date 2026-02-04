@@ -1,87 +1,134 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Buy IDs</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ID Purchase</title>
 
 <style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
 body{
-  font-family:Arial;
-  background:#eef2f5;
-  padding:20px;
+  margin:0;
+  background:linear-gradient(180deg,#6a6fdc,#8e8bdc);
+  padding:15px;
+}
+.card{
+  background:#fff;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 8px 20px rgba(0,0,0,.2);
+  margin-bottom:15px;
+}
+h2{text-align:center;color:#6a6fdc}
+.options{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
 }
 .box{
-  background:#fff;
-  max-width:420px;
-  margin:auto;
-  padding:20px;
-  border-radius:10px;
-  box-shadow:0 0 15px rgba(0,0,0,.15);
+  background:#f1f2ff;
+  padding:15px;
+  text-align:center;
+  border-radius:14px;
+  cursor:pointer;
+  border:2px solid transparent;
 }
-h2{text-align:center}
-select,input,button,textarea{
+.box.active{
+  border-color:#6a6fdc;
+  background:#e5e7ff;
+}
+.custom input{
   width:100%;
-  padding:10px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #ccc;
   margin-top:10px;
 }
 button{
-  background:#28a745;
+  width:100%;
+  margin-top:18px;
+  padding:14px;
   border:none;
+  border-radius:30px;
+  font-size:16px;
   color:#fff;
-  border-radius:5px;
+  background:#aaa;
+  cursor:not-allowed;
+}
+button.active{
+  background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
   cursor:pointer;
+  animation:blink 1s infinite;
 }
-button:disabled{background:#aaa}
-.hidden{display:none}
-.status{
+@keyframes blink{
+  0%{opacity:1}
+  50%{opacity:.6}
+  100%{opacity:1}
+}
+#payment{display:none}
+.qr{
+  background:#f1f2ff;
+  padding:15px;
+  border-radius:14px;
   text-align:center;
-  margin-top:10px;
-  font-weight:bold;
 }
-pre{
-  background:#f4f4f4;
-  padding:10px;
-  white-space:pre-wrap;
+input.utr{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #ccc;
+  margin-top:12px;
+}
+.note{
+  font-size:13px;
+  color:#444;
+  margin-top:10px;
+  text-align:center;
 }
 </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>Buy IDs</h2>
+<div class="card" id="selectPage">
+  <h2>Select Number of IDs</h2>
 
-  <select id="qty">
-    <option value="">Select Quantity</option>
-    <option value="1">1 ID</option>
-    <option value="2">2 IDs</option>
-    <option value="5">5 IDs</option>
-    <option value="10">10 IDs</option>
-  </select>
-
-  <input type="number" id="customQty" placeholder="Or enter custom quantity">
-
-  <button id="buyBtn" disabled>Buy Now</button>
-
-  <div id="payment" class="hidden">
-    <p><b>Pay using UPI</b></p>
-    <img id="qr" width="200"><br>
-    <input id="utr" placeholder="Enter UTR after payment">
-    <button onclick="submitUTR()">Submit UTR</button>
+  <div class="options">
+    <div class="box" onclick="selectQty(1,this)">1 ID<br>₹<span class="p1">--</span></div>
+    <div class="box" onclick="selectQty(2,this)">2 IDs<br>₹<span class="p2">--</span></div>
+    <div class="box" onclick="selectQty(5,this)">5 IDs<br>₹<span class="p5">--</span></div>
+    <div class="box" onclick="selectQty(10,this)">10 IDs<br>₹<span class="p10">--</span></div>
   </div>
 
-  <div class="status" id="status"></div>
-
-  <div id="idsBox" class="hidden">
-    <h3>Your IDs</h3>
-    <pre id="ids"></pre>
+  <div class="custom">
+    <input type="number" id="customQty" placeholder="Custom quantity" oninput="customQty()">
   </div>
+
+  <button id="buyBtn" disabled onclick="openPayment()">Buy Now</button>
 </div>
 
+<div class="card" id="payment">
+  <h2>Payment</h2>
+
+  <p><b>Quantity:</b> <span id="pQty"></span></p>
+  <p><b>Total Amount:</b> ₹<span id="pAmount"></span></p>
+
+  <div class="qr">
+    <img id="qrImg" width="220">
+    <p>UPI ID: <b>bharatpe@upi</b></p>
+  </div>
+
+  <input class="utr" id="utr" placeholder="Enter UTR">
+
+  <button class="active" onclick="submitOrder()">Submit Payment</button>
+
+  <div class="note">⏳ Verification may take up to 5 minutes</div>
+</div>
+
+<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getDatabase, ref, push, set, onValue } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
@@ -93,58 +140,69 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const pricePerId = 100; // 💰 per ID price
-let orderId = null;
+let pricePerId = 0;
+let qty = 0, total = 0;
 
-/* 🔢 QTY SELECT */
-qty.onchange = customQty.oninput = () => {
-  const q = customQty.value || qty.value;
-  buyBtn.disabled = !q || q <= 0;
+// 🔥 LIVE PRICE LISTENER
+onValue(ref(db,"settings/pricePerId"),snap=>{
+  pricePerId = snap.val() || 0;
+  document.querySelector(".p1").innerText = pricePerId;
+  document.querySelector(".p2").innerText = pricePerId*2;
+  document.querySelector(".p5").innerText = pricePerId*5;
+  document.querySelector(".p10").innerText = pricePerId*10;
+});
+
+// SELECT QTY
+window.selectQty = (q,el)=>{
+  qty=q;
+  total=qty*pricePerId;
+  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  enableBuy();
 };
 
-/* 🛒 BUY */
-buyBtn.onclick = () => {
-  const q = parseInt(customQty.value || qty.value);
-  const amount = q * pricePerId;
-
-  orderId = push(ref(db,"orders")).key;
-
-  set(ref(db,"orders/"+orderId),{
-    qty:q,
-    amount,
-    status:"pending"
-  });
-
-  // 🔗 UPI QR
-  const upi = `upi://pay?pa=YOURUPI@upi&pn=ID%20Seller&am=${amount}&cu=INR`;
-  qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(upi);
-
-  payment.classList.remove("hidden");
-  status.innerText = "Payment pending...";
+window.customQty = ()=>{
+  qty = Number(customQty.value);
+  total = qty*pricePerId;
+  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+  enableBuy();
 };
 
-/* 💳 SUBMIT UTR */
-window.submitUTR = () => {
-  if(!utr.value.trim()){
-    alert("Enter UTR");
-    return;
+function enableBuy(){
+  if(qty>0){
+    buyBtn.disabled=false;
+    buyBtn.classList.add("active");
+    buyBtn.innerText = `Buy Now – ₹${total}`;
   }
-  set(ref(db,"orders/"+orderId+"/utr"),utr.value.trim());
-  status.innerText = "Waiting for admin verification...";
-  watchOrder();
+}
+
+window.openPayment = ()=>{
+  selectPage.style.display="none";
+  payment.style.display="block";
+  pQty.innerText = qty;
+  pAmount.innerText = total;
+
+  const upiLink =
+  `upi://pay?pa=bharatpe@upi&pn=IDSTORE&am=${total}&cu=INR`;
+
+  qrImg.src =
+  "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+
+  encodeURIComponent(upiLink);
 };
 
-/* 👀 WATCH ORDER */
-function watchOrder(){
-  onValue(ref(db,"orders/"+orderId),snap=>{
-    const d = snap.val();
-    if(d.status==="verified"){
-      status.innerText = "Payment verified ✅";
-      idsBox.classList.remove("hidden");
-      ids.innerText = d.ids;
-    }
+window.submitOrder = ()=>{
+  if(!utr.value) return alert("Enter UTR");
+
+  push(ref(db,"orders"),{
+    qty,
+    amount: total,
+    utr: utr.value,
+    status:"pending",
+    time:Date.now()
   });
-}
+
+  alert("Payment submitted. Please wait for verification.");
+};
 </script>
 
 </body>
