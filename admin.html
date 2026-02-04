@@ -4,55 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
-
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f172a;
-  color:#fff;
-  padding:15px;
-}
-.card{
-  background:#1e293b;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-}
+body{margin:0;font-family:Arial;background:#0f172a;color:#fff;padding:15px}
+.card{background:#1e293b;padding:15px;border-radius:12px;margin-bottom:15px}
 h2{text-align:center;margin:0 0 10px}
-input,textarea,button{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:none;
-  border-radius:8px;
-  font-size:14px;
-}
-button{
-  background:#22c55e;
-  font-weight:bold;
-  cursor:pointer;
-}
-.list{
-  background:#020617;
-  border-radius:8px;
-  padding:10px;
-}
-.item{
-  border-bottom:1px solid #334155;
-  padding:8px 0;
-}
-.verify{
-  background:#38bdf8;
-  margin-top:6px;
-}
+input,textarea,button{width:100%;padding:12px;margin-top:8px;border:none;border-radius:8px;font-size:14px}
+button{background:#22c55e;font-weight:bold;cursor:pointer}
+.list{background:#020617;border-radius:8px;padding:10px}
+.item{border-bottom:1px solid #334155;padding:8px 0}
+.verify{background:#38bdf8;margin-top:6px}
 small{color:#94a3b8}
 </style>
 </head>
-
 <body>
 
-<!-- LOGIN -->
 <div class="card" id="loginBox">
   <h2>Admin Login</h2>
   <input id="email" placeholder="Admin Email">
@@ -60,67 +25,50 @@ small{color:#94a3b8}
   <button onclick="login()">Login</button>
 </div>
 
-<!-- PANEL -->
 <div id="panel" style="display:none">
+  <div class="card">
+    <h2>ID Price</h2>
+    <input id="price" type="number" placeholder="Price per ID">
+    <button onclick="updatePrice()">Update Price</button>
+  </div>
 
-<!-- PRICE -->
-<div class="card">
-  <h2>ID Price</h2>
-  <input id="price" type="number" placeholder="Price per ID">
-  <button onclick="updatePrice()">Update Price</button>
+  <div class="card">
+    <h2>Add ID Stock</h2>
+    <textarea id="idData" rows="5" placeholder="username\npassword\nphone\nemail"></textarea>
+    <button onclick="addID()">Add ID</button>
+  </div>
+
+  <div class="card">
+    <h2>Available IDs</h2>
+    <div id="stock">Loading...</div>
+  </div>
+
+  <div class="card">
+    <h2>Pending Orders</h2>
+    <div id="orders" class="list"></div>
+  </div>
 </div>
 
-<!-- ADD ID -->
-<div class="card">
-  <h2>Add ID Stock</h2>
-  <textarea id="idData" rows="5"
-placeholder="username
-password
-phone
-email"></textarea>
-  <button onclick="addID()">Add ID</button>
-</div>
-
-<!-- STOCK COUNT -->
-<div class="card">
-  <h2>Available IDs</h2>
-  <div id="stock">Loading...</div>
-</div>
-
-<!-- ORDERS -->
-<div class="card">
-  <h2>Pending Orders</h2>
-  <div id="orders" class="list"></div>
-</div>
-
-</div>
-
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-/* 🔥 YOUR API */
 const firebaseConfig = {
   apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
   authDomain: "database-7209.firebaseapp.com",
   databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
   projectId: "database-7209",
-  storageBucket: "database-7209.firebasestorage.app",
+  storageBucket: "database-7209.appspot.com",
   messagingSenderId: "690721900018",
-  appId: "1:690721900018:web:c8b2d04586b1fadf0a176b",
-  measurementId: "G-6Z60T6DZPH"
+  appId: "1:690721900018:web:c8b2d04586b1fadf0a176b"
 };
 
 const app = initializeApp(firebaseConfig);
-getAnalytics(app);
-
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-/* LOGIN */
+// LOGIN
 window.login = ()=>{
   signInWithEmailAndPassword(auth,email.value,pass.value)
   .then(()=>{
@@ -132,42 +80,34 @@ window.login = ()=>{
   .catch(()=>alert("Invalid Login"));
 };
 
-/* PRICE UPDATE */
+// PRICE UPDATE
 window.updatePrice = ()=>{
+  if(price.value <= 0) return alert("Enter valid price");
   set(ref(db,"settings/pricePerId"),Number(price.value));
   alert("Price Updated");
 };
 
-/* ADD ID (NO REPEAT) */
+// ADD ID
 window.addID = ()=>{
   const l=idData.value.trim().split("\n");
-  if(l.length<4) return alert("Wrong format");
-
+  if(l.length<4) return alert("Wrong format (username,pass,phone,email)");
   push(ref(db,"ids"),{
-    username:l[0],
-    password:l[1],
-    phone:l[2],
-    email:l[3],
-    sold:false,
-    time:Date.now()
+    username:l[0], password:l[1], phone:l[2], email:l[3], sold:false, time:Date.now()
   });
-
   idData.value="";
   alert("ID Added");
 };
 
-/* STOCK COUNT */
+// STOCK COUNT
 function loadStock(){
   onValue(ref(db,"ids"),snap=>{
     let c=0;
-    snap.forEach(s=>{
-      if(!s.val().sold) c++;
-    });
+    snap.forEach(s=>{ if(!s.val().sold) c++; });
     stock.innerHTML="Available IDs: "+c;
   });
 }
 
-/* LOAD ORDERS */
+// LOAD ORDERS
 function loadOrders(){
   onValue(ref(db,"orders"),snap=>{
     orders.innerHTML="";
@@ -177,22 +117,17 @@ function loadOrders(){
         orders.innerHTML+=`
         <div class="item">
           Qty: ${o.qty} | ₹${o.amount}<br>
-          UTR: ${o.utr}<br>
           <small>${new Date(o.time).toLocaleString()}</small>
-          <button class="verify"
-          onclick="verify('${s.key}',${o.qty})">
-          Verify & Deliver
-          </button>
+          <button class="verify" onclick="verify('${s.key}',${o.qty})">Verify & Delivered</button>
         </div>`;
       }
     });
   });
 }
 
-/* VERIFY & DELIVER */
+// VERIFY & DELIVER
 window.verify = (orderId,qty)=>{
   let delivered=0;
-
   onValue(ref(db,"ids"),snap=>{
     snap.forEach(s=>{
       if(!s.val().sold && delivered<qty){
@@ -202,24 +137,14 @@ window.verify = (orderId,qty)=>{
     });
 
     if(delivered===qty){
-      update(ref(db,"orders/"+orderId),{
-        status:"verified",
-        delivered:true
-      });
-
-      push(ref(db,"sales"),{
-        orderId,
-        qty,
-        time:Date.now()
-      });
-
+      update(ref(db,"orders/"+orderId),{status:"verified",delivered:true});
+      push(ref(db,"sales"),{orderId,qty,time:Date.now()});
       alert("Payment Verified & IDs Delivered");
-    }else{
+    } else {
       alert("Not enough stock");
     }
   },{onlyOnce:true});
 };
 </script>
-
 </body>
 </html>
