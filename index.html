@@ -4,145 +4,242 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ID Purchase</title>
+
 <style>
-*{box-sizing:border-box;font-family:Arial,sans-serif}
-body{margin:0;background:linear-gradient(180deg,#6a6fdc,#8e8bdc);padding:15px}
-.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.2);margin-bottom:15px}
-h2{text-align:center;color:#6a6fdc}
-.options{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.box{background:#f1f2ff;padding:15px;text-align:center;border-radius:14px;cursor:pointer;border:2px solid transparent}
-.box.active{border-color:#6a6fdc;background:#e5e7ff}
-.custom input{width:100%;padding:12px;border-radius:12px;border:1px solid #ccc;margin-top:10px}
-button{width:100%;margin-top:18px;padding:14px;border:none;border-radius:30px;font-size:16px;color:#fff;background:#aaa;cursor:not-allowed}
-button.active{background:linear-gradient(90deg,#ff4d4d,#ff2f7b);cursor:pointer;animation:blink 1s infinite}
-@keyframes blink{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
-#payment,#success,#idList{display:none}
-.qr{background:#f1f2ff;padding:15px;border-radius:14px;text-align:center;margin-top:10px}
-input.utr{width:100%;padding:12px;border-radius:12px;border:1px solid #ccc;margin-top:12px}
-.note{font-size:13px;color:#444;margin-top:10px;text-align:center}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(180deg,#6a6fdc,#8e8bdc);
+  padding:15px;
+}
+.card{
+  background:#fff;
+  border-radius:20px;
+  padding:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,.25);
+  margin-bottom:16px;
+}
+h2{text-align:center;color:#6a6fdc;margin-top:0}
+.options{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+.box{
+  background:#f1f2ff;
+  padding:16px;
+  text-align:center;
+  border-radius:16px;
+  cursor:pointer;
+  border:2px solid transparent;
+  font-weight:bold;
+}
+.box.active{
+  border-color:#6a6fdc;
+  background:#e6e8ff;
+}
+.custom input{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid #ccc;
+  margin-top:12px;
+}
+button{
+  width:100%;
+  margin-top:18px;
+  padding:15px;
+  border:none;
+  border-radius:30px;
+  font-size:16px;
+  font-weight:bold;
+  color:#fff;
+  background:#aaa;
+  cursor:not-allowed;
+}
+button.active{
+  background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
+  cursor:pointer;
+}
+.qr{
+  background:#f1f2ff;
+  padding:16px;
+  border-radius:16px;
+  text-align:center;
+}
+input.utr{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid #ccc;
+  margin-top:14px;
+}
+pre{
+  background:#f8fafc;
+  border-radius:14px;
+  padding:14px;
+  font-size:13px;
+  overflow:auto;
+}
+.copy{
+  background:#22c55e;
+}
 </style>
 </head>
+
 <body>
 
+<!-- SELECT -->
 <div class="card" id="selectPage">
-<h2>Select Number of IDs</h2>
-<div class="options">
-  <div class="box" onclick="selectQty(1,this)">1 ID<br>₹<span class="p1">--</span></div>
-  <div class="box" onclick="selectQty(2,this)">2 IDs<br>₹<span class="p2">--</span></div>
-  <div class="box" onclick="selectQty(5,this)">5 IDs<br>₹<span class="p5">--</span></div>
-  <div class="box" onclick="selectQty(10,this)">10 IDs<br>₹<span class="p10">--</span></div>
-</div>
-<div class="custom">
-  <input type="number" id="customQty" placeholder="Custom quantity" oninput="customQty()">
-</div>
-<button id="buyBtn" disabled onclick="openPayment()">Buy Now</button>
+  <h2>Select IDs</h2>
+
+  <div class="options">
+    <div class="box" onclick="selectQty(1,this)">1 ID</div>
+    <div class="box" onclick="selectQty(2,this)">2 IDs</div>
+    <div class="box" onclick="selectQty(5,this)">5 IDs</div>
+    <div class="box" onclick="selectQty(10,this)">10 IDs</div>
+  </div>
+
+  <div class="custom">
+    <input type="number" id="customQty" placeholder="Custom quantity" min="1" oninput="customQtyChange()">
+  </div>
+
+  <button id="buyBtn" disabled onclick="openPayment()">Buy Now</button>
 </div>
 
-<div class="card" id="payment">
-<h2>Payment</h2>
-<p><b>Quantity:</b> <span id="pQty"></span></p>
-<p><b>Total Amount:</b> ₹<span id="pAmount"></span></p>
-<div class="qr">
-  <img id="qrImg" width="220">
-</div>
-<input class="utr" id="utr" placeholder="Enter UTR">
-<button class="active" onclick="submitOrder()">Submit Payment</button>
-<div class="note">⏳ Verification may take a few minutes</div>
+<!-- PAYMENT -->
+<div class="card" id="payment" style="display:none">
+  <h2>Payment</h2>
+  <p><b>Qty:</b> <span id="pQty"></span></p>
+  <p><b>Total:</b> ₹<span id="pAmount"></span></p>
+
+  <div class="qr">
+    <img id="qrImg" width="220">
+  </div>
+
+  <input class="utr" id="utr" placeholder="Enter UTR after payment">
+  <button class="active" onclick="submitOrder()">Submit Payment</button>
 </div>
 
-<div class="card" id="success">
-<h2>✅ Payment Successful!</h2>
-<div class="note">Your IDs will appear shortly...</div>
-</div>
-
-<div class="card" id="idList">
-<h2>Your Purchased IDs</h2>
-<div id="idsContainer"></div>
+<!-- SUCCESS -->
+<div class="card" id="success" style="display:none">
+  <h2>✅ Success</h2>
+  <pre id="ids"></pre>
+  <button class="copy" onclick="copyIDs()">Copy All IDs</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, onValue, push, update, get } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
-  authDomain: "database-7209.firebaseapp.com",
-  databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
-  projectId: "database-7209"
-};
-
-const app = initializeApp(firebaseConfig);
+const app = initializeApp({
+  apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
+  databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
+});
 const db = getDatabase(app);
 
-let pricePerId = 0, qty = 0, total = 0, orderKey="";
+let qty = 0;
+let price = 0;
+let orderId = "";
+const upi = "bharatpe@upi";
 
-// LIVE PRICE
-onValue(ref(db,"settings/pricePerId"),snap=>{
-  pricePerId = snap.val()||0;
-  document.querySelector(".p1").innerText=pricePerId;
-  document.querySelector(".p2").innerText=pricePerId*2;
-  document.querySelector(".p5").innerText=pricePerId*5;
-  document.querySelector(".p10").innerText=pricePerId*10;
+/* LIVE PRICE */
+onValue(ref(db,"settings/pricePerId"), snap=>{
+  price = snap.val() || 0;
+  enableBuy();
 });
 
-window.selectQty = (q,el)=>{ qty=q; total=qty*pricePerId;
+/* SELECT FIXED QTY */
+window.selectQty = (q, el) => {
+  qty = q;
+  customQty.value = "";
   document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
-  el.classList.add("active"); enableBuy();
+  el.classList.add("active");
+  enableBuy();
 };
 
-window.customQty = ()=>{ qty=Number(customQty.value); total=qty*pricePerId;
-  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active")); enableBuy();
+/* CUSTOM QTY */
+window.customQtyChange = () => {
+  qty = Number(customQty.value);
+  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+  enableBuy();
 };
 
+/* ENABLE BUY */
 function enableBuy(){
-  if(qty>0){ buyBtn.disabled=false; buyBtn.classList.add("active"); buyBtn.innerText=`Buy Now – ₹${total}`; }
+  if(qty > 0 && price > 0){
+    buyBtn.disabled = false;
+    buyBtn.classList.add("active");
+    buyBtn.innerText = `Buy Now – ₹${qty * price}`;
+  } else {
+    buyBtn.disabled = true;
+    buyBtn.classList.remove("active");
+    buyBtn.innerText = "Buy Now";
+  }
 }
 
-window.openPayment = ()=>{
-  selectPage.style.display="none"; payment.style.display="block";
-  pQty.innerText=qty; pAmount.innerText=total;
-  // RANDOM QR (dummy)
-  qrImg.src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+Math.random();
-};
+/* CREATE ORDER */
+window.openPayment = async () => {
+  const orderRef = push(ref(db,"orders"));
+  orderId = orderRef.key;
 
-window.submitOrder = ()=>{
-  if(!utr.value) return alert("Enter UTR");
-  const newOrder = push(ref(db,"orders"),{
-    qty, amount: total, utr:utr.value, status:"pending", time:Date.now()
+  await update(orderRef,{
+    qty,
+    amount: qty * price,
+    status: "pending",
+    time: Date.now()
   });
-  orderKey = newOrder.key;
-  payment.style.display="none"; alert("Payment submitted. Waiting for admin verification...");
-  listenOrder(orderKey);
+
+  selectPage.style.display="none";
+  payment.style.display="block";
+  pQty.innerText = qty;
+  pAmount.innerText = qty * price;
+
+  const upiLink = `upi://pay?pa=${upi}&pn=IDSTORE&am=${qty*price}&cu=INR`;
+  qrImg.src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" +
+    encodeURIComponent(upiLink);
 };
 
-// LISTEN FOR ADMIN VERIFY
-function listenOrder(key){
-  onValue(ref(db,"orders/"+key),snap=>{
-    const o = snap.val();
-    if(o.status==="verified"){
-      showSuccess(o.qty);
+/* SUBMIT UTR */
+window.submitOrder = () => {
+  const u = utr.value.trim();
+  if(!u) return alert("Enter UTR");
+
+  update(ref(db,"orders/"+orderId),{
+    utr: u,
+    status: "pending_verification"
+  });
+
+  alert("Payment submitted. Waiting for admin verification.");
+
+  onValue(ref(db,"orders/"+orderId+"/status"), snap=>{
+    if(snap.val() === "verified"){
+      loadIDs();
     }
+  },{onlyOnce:true});
+};
+
+/* LOAD IDS */
+function loadIDs(){
+  get(ref(db,"deliveries/"+orderId)).then(snap=>{
+    let out="";
+    snap.forEach(c=>{
+      const v = c.val();
+      out += `${v.username} | ${v.password} | ${v.phone} | ${v.email}\n`;
+    });
+    ids.innerText = out;
+    payment.style.display="none";
+    success.style.display="block";
   });
 }
 
-function showSuccess(qty){
-  success.style.display="block";
-  setTimeout(()=>{ success.style.display="none"; showIDs(qty); },5000);
-}
-
-function showIDs(qty){
-  idList.style.display="block"; idsContainer.innerHTML="";
-  let count=0;
-  onValue(ref(db,"ids"),snap=>{
-    idsContainer.innerHTML="";
-    snap.forEach(s=>{
-      if(s.val().sold && count<qty){
-        idsContainer.innerHTML+=`<div>${s.val().username} | ${s.val().password} | ${s.val().email}</div>`;
-        count++;
-      }
-    });
-  }, {onlyOnce:true});
-}
+window.copyIDs = () => {
+  navigator.clipboard.writeText(ids.innerText);
+  alert("IDs Copied");
+};
 </script>
+
 </body>
 </html>
