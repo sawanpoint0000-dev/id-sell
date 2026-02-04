@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>
+body{
+  font-family:Arial;
+  background:#f2f4f7;
+  padding:20px;
+}
+.box{
+  background:#fff;
+  max-width:520px;
+  margin:auto;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 0 15px rgba(0,0,0,.15);
+}
+h2{text-align:center}
+input,textarea,button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+.row{
+  display:flex;
+  gap:6px;
+}
+.row textarea{flex:1}
+.row button{
+  width:120px;
+  background:#28a745;
+}
+button{
+  background:#007bff;
+  border:none;
+  color:#fff;
+  border-radius:5px;
+  cursor:pointer;
+}
+.order{
+  border:1px solid #ddd;
+  margin-top:10px;
+  padding:10px;
+  border-radius:5px;
+}
+.hidden{display:none}
+.count{
+  text-align:center;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🔐 LOGIN -->
+<div class="box" id="loginBox">
+  <h2>Admin Login</h2>
+  <input type="email" id="email" placeholder="Admin Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <div id="msg"></div>
+</div>
+
+<!-- 🧠 ADMIN PANEL -->
+<div class="box hidden" id="panel">
+
+  <div class="count">
+    Total IDs in Stock: <span id="stockCount">0</span>
+  </div>
+
+  <h2>Add IDs</h2>
+  <div class="row">
+    <textarea id="idsInput" placeholder="One ID per line"></textarea>
+    <button onclick="addIds()">Add IDs</button>
+  </div>
+
+  <hr>
+
+  <h2>Orders (Payment Verification)</h2>
+  <div id="orders"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
+  authDomain: "database-7209.firebaseapp.com",
+  databaseURL: "https://database-7209-default-rtdb.firebaseio.com",
+  projectId: "database-7209"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+/* 🔐 LOGIN */
+window.login = () => {
+  signInWithEmailAndPassword(
+    auth,
+    email.value.trim(),
+    password.value.trim()
+  ).catch(e => msg.innerText = e.code);
+};
+
+/* 🔁 AUTH CHECK */
+onAuthStateChanged(auth,user=>{
+  if(user){
+    loginBox.classList.add("hidden");
+    panel.classList.remove("hidden");
+    watchStock();
+    loadOrders();
+  }
+});
+
+/* 📊 STOCK COUNT */
+function watchStock(){
+  const idsRef = ref(db,"ids");
+  onValue(idsRef,snap=>{
+    stockCount.innerText = snap.size || snap.numChildren();
+  });
+}
+
+/* ➕ ADD IDS */
+window.addIds = () => {
+  const list = idsInput.value.trim().split("\n").filter(x=>x);
+  const idsRef = ref(db,"ids");
+
+  list.forEach(id=>{
+    push(idsRef,id.trim());
+  });
+
+  idsInput.value="";
+};
+
+/* 📦 LOAD ORDERS */
+function loadOrders(){
+  const ordersRef = ref(db,"orders");
+  onValue(ordersRef,snap=>{
+    orders.innerHTML="";
+    snap.forEach(o=>{
+      const d = o.val();
+      orders.innerHTML += `
+        <div class="order">
+          Order: ${o.key}<br>
+          Qty: ${d.qty}<br>
+          UTR: ${d.utr || "N/A"}<br>
+          Status: <b>${d.status}</b><br>
+
+          ${d.status==="pending" ? 
+            `<button onclick="verify('${o.key}',${d.qty})">Verify Payment</button>` 
+          : `<small>✅ IDs Sent</small>`}
+        </div>
+      `;
+    });
+  });
+}
+
+/* ✅ VERIFY PAYMENT + SEND IDS */
+window.verify = (orderId,qty) => {
+  const idsRef = ref(db,"ids");
+
+  onValue(idsRef,snap=>{
+    let ids=[];
+    snap.forEach(c=>ids.push({key:c.key,val:c.val()}));
+
+    if(ids.length < qty){
+      alert("Not enough IDs in stock");
+      return;
+    }
+
+    let selected = ids.slice(0,qty);
+    let updates = {};
+
+    selected.forEach(i=>{
+      updates["ids/"+i.key] = null;
+    });
+
+    updates["orders/"+orderId+"/status"] = "verified";
+    updates["orders/"+orderId+"/ids"] =
+      selected.map(x=>x.val).join("\n");
+
+    update(ref(db),updates);
+    alert("Payment verified & IDs sent");
+  },{once:true});
+};
+</script>
+
+</body>
+</html>
