@@ -3,110 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buy IDs</title>
+<title>Premium ID Store</title>
 
 <style>
-*{
-  box-sizing:border-box;
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-}
+*{box-sizing:border-box;font-family:system-ui}
 body{
   margin:0;
-  min-height:100vh;
-  background:linear-gradient(180deg,#4f46e5,#6d6af5);
-  padding:18px;
+  background:linear-gradient(180deg,#5b4bdb,#7b6cf6);
+  padding:16px;
 }
 .container{max-width:420px;margin:auto}
 .card{
   background:#fff;
-  border-radius:22px;
-  padding:20px;
+  border-radius:24px;
+  padding:18px;
   margin-bottom:18px;
-  box-shadow:0 12px 30px rgba(0,0,0,.25);
+  box-shadow:0 15px 35px rgba(0,0,0,.25)
 }
-h2{text-align:center;color:#4f46e5;margin:0 0 14px}
-.sub{text-align:center;color:#666;font-size:13px;margin-bottom:16px}
-
-.options{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:800;
+  color:#6b5cff
+}
+.badge{
+  background:#ffebeb;
+  color:#ff3b3b;
+  padding:6px 14px;
+  border-radius:30px;
+  font-weight:700;
+  font-size:13px;
+  margin:12px auto;
+  width:max-content
+}
+.stock{
+  text-align:center;
+  font-size:22px;
+  font-weight:900;
+  color:#6b5cff
+}
+.note{
+  background:#f3f4ff;
+  border-radius:18px;
+  padding:14px;
+  font-size:13px;
+  color:#555;
+  margin-top:10px
+}
+.options{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+  margin-top:14px
+}
 .box{
   background:#f4f6ff;
   border-radius:18px;
-  padding:18px;
+  padding:14px;
   text-align:center;
-  font-weight:700;
+  font-weight:800;
   cursor:pointer;
-  border:2px solid transparent;
+  border:2px solid transparent
 }
-.box small{display:block;color:#555;font-weight:500;margin-top:6px}
-.box.active{background:#eef0ff;border-color:#4f46e5;color:#4f46e5}
-
-input{
-  width:100%;
-  padding:15px;
+.box span{display:block;font-size:13px;color:#666;margin-top:4px}
+.box.active{
+  border-color:#6b5cff;
+  background:#eef0ff;
+  color:#6b5cff
+}
+.custom{
+  margin-top:12px;
+  padding:14px;
   border-radius:16px;
   border:1.5px solid #ddd;
-  margin-top:14px;
-  font-size:15px;
+  width:100%
 }
-
-button{
+.buy{
   width:100%;
+  margin-top:18px;
   padding:16px;
   border:none;
-  border-radius:32px;
-  font-size:16px;
-  font-weight:700;
-  margin-top:18px;
-  background:#b5b5b5;
+  border-radius:40px;
+  font-size:17px;
+  font-weight:900;
   color:#fff;
+  background:linear-gradient(90deg,#ff4d4d,#ff2f7b)
 }
-button.active{
-  background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
+.icons{
+  display:flex;
+  justify-content:space-around;
+  margin-top:18px;
+  font-size:13px;
+  color:#555
 }
-button.copy{background:#22c55e}
-
-/* payment */
-.pay-info{text-align:center}
-.amount{font-size:20px;font-weight:800}
-.qr-wrap{display:flex;justify-content:center;margin:14px 0}
-
-/* processing */
-.processing{
+.icon{text-align:center;cursor:pointer}
+.icon div{
+  width:44px;height:44px;
+  border-radius:50%;
+  background:#eef0ff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:auto auto 6px;
+  color:#6b5cff;
+  font-size:20px
+}
+.list{
+  background:#6b5cff;
+  color:#fff;
+  border-radius:22px;
+  padding:18px
+}
+.list p{margin:10px 0;font-size:14px}
+.footer{
   text-align:center;
-  padding:30px 0;
+  color:#fff;
+  font-size:24px;
+  font-weight:900;
+  margin-top:10px
 }
+.processing{text-align:center;padding:30px}
 .spinner{
-  width:50px;height:50px;
+  width:52px;height:52px;
   border:5px solid #e5e7eb;
-  border-top:5px solid #4f46e5;
+  border-top:5px solid #6b5cff;
   border-radius:50%;
   animation:spin 1s linear infinite;
-  margin:0 auto 14px;
+  margin:0 auto 12px
 }
-@keyframes spin{
-  0%{transform:rotate(0deg)}
-  100%{transform:rotate(360deg)}
-}
-.processing p{
-  font-weight:600;
-  color:#333;
-}
-
-/* success */
+@keyframes spin{to{transform:rotate(360deg)}}
 pre{
   background:#f8fafc;
   border-radius:18px;
   padding:16px;
-  font-size:14px;
   white-space:pre-wrap;
-  line-height:1.45;
+  font-size:14px
 }
-.success-title{
-  text-align:center;
-  font-size:20px;
+.copy{
+  background:#22c55e;
+  color:#fff;
+  border:none;
+  padding:14px;
+  width:100%;
+  border-radius:30px;
   font-weight:800;
-  color:#16a34a;
-  margin-bottom:12px;
+  margin-top:14px
 }
 </style>
 </head>
@@ -114,50 +156,64 @@ pre{
 <body>
 <div class="container">
 
-<!-- SELECT -->
 <div class="card" id="select">
-<h2>Select IDs</h2>
-<div class="sub">Choose quantity</div>
+<div class="header">🛍️ ISLAM BHAI <small>PREMIUM ID STORE</small></div>
+
+<div class="badge">⚡ Limited Stock!</div>
+<div class="stock">ID Available: <span id="stock">0</span></div>
+
+<div class="note">
+Fresh verified IDs<br>
+Automatic delivery after payment<br>
+Password: Kolkata123
+</div>
+
+<h4>Select Number of IDs</h4>
 
 <div class="options">
-  <div class="box" onclick="setQty(1,this)">1 ID<small>Instant</small></div>
-  <div class="box" onclick="setQty(2,this)">2 IDs<small>Best</small></div>
-  <div class="box" onclick="setQty(5,this)">5 IDs<small>Popular</small></div>
-  <div class="box" onclick="setQty(10,this)">10 IDs<small>Bulk</small></div>
+ <div class="box" onclick="pick(1,this)">1 ID<span id="p1"></span></div>
+ <div class="box" onclick="pick(2,this)">2 IDs<span id="p2"></span></div>
+ <div class="box" onclick="pick(5,this)">5 IDs<span id="p5"></span></div>
+ <div class="box" onclick="pick(10,this)">10 IDs<span id="p10"></span></div>
 </div>
 
-<input id="custom" type="number" placeholder="Custom quantity" oninput="customQty()">
-<button id="buy" onclick="pay()">Buy Now</button>
+<input class="custom" type="number" placeholder="Custom quantity" oninput="customQty(this.value)">
+<button class="buy" id="buy">Buy Now</button>
+
+<div class="icons">
+ <div class="icon"><div>🔒</div>Secure</div>
+ <div class="icon"><div>⚡</div>Instant</div>
+ <div class="icon" onclick="openWhatsApp()"><div>💬</div>WhatsApp</div>
+</div>
 </div>
 
-<!-- PAYMENT -->
+<div class="card list">
+<p>✔ Do not change password</p>
+<p>✔ Do not sync via software</p>
+<p>✔ Avoid multiple IDs same IP</p>
+<p>✔ If pending contact support</p>
+</div>
+
+<div class="footer">Why Choose Our IDs?</div>
+
 <div class="card" id="payment" style="display:none">
-<h2>Complete Payment</h2>
-
-<div class="pay-info">
-Qty: <b id="pq"></b><br>
-<div class="amount">₹ <span id="pa"></span></div>
+<h3>Scan & Pay</h3>
+<p>Qty: <b id="pq"></b></p>
+<p>Total: ₹<b id="pa"></b></p>
+<img id="qr" width="220" style="display:block;margin:auto">
+<input class="custom" id="utr" placeholder="Enter UTR">
+<button class="buy" onclick="submit()">Submit Payment</button>
 </div>
 
-<div class="qr-wrap">
-<img id="qr" width="220">
-</div>
-
-<input id="utr" placeholder="Enter UTR / Reference">
-<button class="active" onclick="submit()">Submit Payment</button>
-</div>
-
-<!-- PROCESSING -->
 <div class="card" id="processing" style="display:none">
 <div class="processing">
-  <div class="spinner"></div>
-  <p>Payment processing…<br>Please wait for admin verification</p>
+<div class="spinner"></div>
+<p>Payment Processing…<br>Please wait</p>
 </div>
 </div>
 
-<!-- SUCCESS -->
 <div class="card" id="success" style="display:none">
-<div class="success-title">✅ Payment Successful</div>
+<h3>✅ IDs Delivered</h3>
 <pre id="ids"></pre>
 <button class="copy" onclick="copy()">Copy All IDs</button>
 </div>
@@ -174,66 +230,79 @@ const app=initializeApp({
 });
 const db=getDatabase(app);
 
+const whatsappNumber="919876543210"; // apna number
+const upi="airtelshop09@ybl";
+
 let qty=0,price=0,orderId="";
-const upi="bharatpe@upi";
 
-onValue(ref(db,"settings/pricePerId"),s=>price=s.val()||0);
+onValue(ref(db,"stock"),s=>stock.innerText=s.size||0);
 
-window.setQty=(q,e)=>{
+onValue(ref(db,"settings/pricePerId"),s=>{
+ price=s.val()||0;
+ p1.innerText="₹"+price;
+ p2.innerText="₹"+price*2;
+ p5.innerText="₹"+price*5;
+ p10.innerText="₹"+price*10;
+});
+
+window.pick=(q,e)=>{
  qty=q;
  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
  e.classList.add("active");
- buy.classList.add("active");
- buy.innerText=`Buy ₹${qty*price}`;
+ buy.innerText=`Buy Now - ₹${qty*price}`;
 };
 
-window.customQty=()=>{
- qty=+custom.value;
- if(qty>0){
-  buy.classList.add("active");
-  buy.innerText=`Buy ₹${qty*price}`;
- }
+window.customQty=v=>{
+ qty=+v;
+ document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+ if(qty>0) buy.innerText=`Buy Now - ₹${qty*price}`;
 };
 
-window.pay=()=>{
+buy.onclick=()=>{
+ if(qty<=0) return alert("Enter valid quantity");
  orderId=push(ref(db,"orders"),{
-  qty,amount:qty*price,status:"pending",time:Date.now()
+  qty,amount:qty*price,status:"created",time:Date.now()
  }).key;
 
  select.style.display="none";
  payment.style.display="block";
  pq.innerText=qty;
  pa.innerText=qty*price;
- qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=upi://pay?pa=${upi}&am=${qty*price}&cu=INR`;
+ const amount = qty * price;
+const upiData = `upi://pay?pa=${upi}&pn=Islam%20ID%20Store&am=${amount}&cu=INR&mode=02&tn=ID%20Purchase`;
+
+qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiData)}`;
+
 };
 
 window.submit=()=>{
- if(!utr.value) return alert("UTR required");
-
- update(ref(db,"orders/"+orderId),{utr:utr.value});
-
+ if(!utr.value) return alert("Enter UTR");
+ update(ref(db,"orders/"+orderId),{utr:utr.value,status:"pending"});
  payment.style.display="none";
  processing.style.display="block";
-
  onValue(ref(db,"orders/"+orderId+"/status"),s=>{
-  if(s.val()==="verified") loadIDs();
+  if(s.val()==="verified") load();
  });
 };
 
-function loadIDs(){
+function load(){
  onValue(ref(db,"deliveries/"+orderId),snap=>{
-  let out="";
+  let t="";
   snap.forEach(c=>{
-   let v=c.val();
-   out+=`${v.username}\n${v.password}\n${v.phone}\n${v.email}\n\n------------------\n\n`;
+   const v=c.val();
+   t+=`${v.username}\n${v.password}\n${v.phone}\n${v.email}\n\n`;
   });
-  ids.innerText=out;
+  ids.innerText=t.trim();
   processing.style.display="none";
   success.style.display="block";
  },{onlyOnce:true});
 }
 
 window.copy=()=>navigator.clipboard.writeText(ids.innerText);
+
+window.openWhatsApp=()=>{
+ window.open(`https://wa.me/${whatsappNumber}?text=Hello Support 👋`,"_blank");
+};
 </script>
 </body>
 </html>
