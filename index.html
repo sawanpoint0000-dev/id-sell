@@ -1,96 +1,206 @@
-<script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import {getDatabase,ref,onValue,push,update} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ID Purchase</title>
 
-const app=initializeApp({
- apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
- databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
+<style>
+*{box-sizing:border-box;font-family:Arial}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(180deg,#6a6fdc,#8e8bdc);
+  padding:15px;
+}
+.card{
+  background:#fff;
+  border-radius:20px;
+  padding:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,.25);
+  margin-bottom:16px;
+}
+h2{text-align:center;color:#6a6fdc}
+.options{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+.box{
+  background:#f1f2ff;
+  padding:16px;
+  text-align:center;
+  border-radius:16px;
+  cursor:pointer;
+  border:2px solid transparent;
+  font-weight:bold;
+}
+.box.active{
+  border-color:#6a6fdc;
+  background:#e6e8ff;
+}
+input{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid #ccc;
+  margin-top:12px;
+}
+button{
+  width:100%;
+  margin-top:18px;
+  padding:15px;
+  border:none;
+  border-radius:30px;
+  font-size:16px;
+  font-weight:bold;
+  color:#fff;
+  background:#aaa;
+}
+button.active{
+  background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
+}
+pre{
+  background:#f8fafc;
+  border-radius:14px;
+  padding:14px;
+  font-size:13px;
+  overflow:auto;
+}
+.copy{background:#22c55e}
+</style>
+</head>
+
+<body>
+
+<!-- SELECT -->
+<div class="card" id="select">
+<h2>Select IDs</h2>
+
+<div class="options">
+  <div class="box" onclick="setQty(1,this)">1 ID</div>
+  <div class="box" onclick="setQty(2,this)">2 IDs</div>
+  <div class="box" onclick="setQty(5,this)">5 IDs</div>
+  <div class="box" onclick="setQty(10,this)">10 IDs</div>
+</div>
+
+<input id="custom" type="number" placeholder="Custom quantity" oninput="customQty()">
+<button id="buy" onclick="pay()">Buy Now</button>
+</div>
+
+<!-- PAYMENT -->
+<div class="card" id="payment" style="display:none">
+<h2>Payment</h2>
+<p>Qty: <b id="pq"></b></p>
+<p>Total: ₹<b id="pa"></b></p>
+<img id="qr" width="220"><br>
+<input id="utr" placeholder="Enter UTR">
+<button class="active" onclick="submit()">Submit Payment</button>
+</div>
+
+<!-- SUCCESS -->
+<div class="card" id="success" style="display:none">
+<h2>✅ Success</h2>
+<pre id="ids"></pre>
+<button class="copy" onclick="copy()">Copy All IDs</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
+  databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
 });
-const db=getDatabase(app);
+const db = getDatabase(app);
 
 let qty=0,price=0,orderId="";
 const upi="bharatpe@upi";
 
 /* LIVE PRICE */
 onValue(ref(db,"settings/pricePerId"),s=>{
- price=s.val()||0;
+  price=s.val()||0;
 });
 
-/* QTY */
+/* SELECT QTY */
 window.setQty=(q,e)=>{
- qty=q;
- document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
- e.classList.add("active");
- enable();
+  qty=q;
+  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+  e.classList.add("active");
+  enable();
 };
 
 window.customQty=()=>{
- qty=+custom.value;
- enable();
+  qty=Number(custom.value);
+  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+  enable();
 };
 
 function enable(){
- if(qty>0){
-  buy.classList.add("active");
-  buy.innerText=`Buy ₹${qty*price}`;
- }
+  if(qty>0){
+    buy.classList.add("active");
+    buy.innerText=`Buy ₹${qty*price}`;
+  }
 }
 
 /* CREATE ORDER */
 window.pay=()=>{
- if(qty<=0) return alert("Qty select karo");
+  if(qty<=0) return alert("Select quantity");
 
- orderId=push(ref(db,"orders"),{
-  qty,
-  amount:qty*price,
-  status:"pending",
-  time:Date.now()
- }).key;
+  orderId = push(ref(db,"orders"),{
+    qty,
+    amount:qty*price,
+    status:"pending",
+    time:Date.now()
+  }).key;
 
- select.style.display="none";
- payment.style.display="block";
- pq.innerText=qty;
- pa.innerText=qty*price;
+  select.style.display="none";
+  payment.style.display="block";
+  pq.innerText=qty;
+  pa.innerText=qty*price;
 
- qr.src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="
- +encodeURIComponent(`upi://pay?pa=${upi}&am=${qty*price}&cu=INR`);
+  qr.src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="
+  +encodeURIComponent(`upi://pay?pa=${upi}&am=${qty*price}&cu=INR`);
 };
 
-/* SUBMIT UTR */
+/* SUBMIT PAYMENT */
 window.submit=()=>{
- if(!utr.value) return alert("UTR enter karo");
+  if(!utr.value) return alert("Enter UTR");
 
- update(ref(db,"orders/"+orderId),{
-  utr:utr.value,
-  status:"paid"
- });
+  update(ref(db,"orders/"+orderId),{
+    utr:utr.value,
+    status:"paid"
+  });
 
- alert("Payment submitted. Admin verify karega.");
+  alert("Payment submitted. Waiting for admin verification.");
 
- /* REALTIME VERIFY LISTENER */
- onValue(ref(db,"orders/"+orderId+"/status"),s=>{
-  if(s.val()==="verified"){
-   loadIDs();
-  }
- });
+  onValue(ref(db,"orders/"+orderId+"/status"),s=>{
+    if(s.val()==="verified"){
+      loadIDs();
+    }
+  });
 };
 
-/* LOAD IDS */
+/* LOAD DELIVERED IDS */
 function loadIDs(){
- onValue(ref(db,"deliveries/"+orderId),snap=>{
-  let out="";
-  snap.forEach(c=>{
-   const v=c.val();
-   out+=`${v.username} | ${v.password} | ${v.phone} | ${v.email}\n`;
-  });
-  ids.innerText=out;
-  payment.style.display="none";
-  success.style.display="block";
- },{onlyOnce:true});
+  onValue(ref(db,"deliveries/"+orderId+"/ids"),snap=>{
+    let out="";
+    snap.forEach(c=>{
+      const v=c.val();
+      out+=`${v.username} | ${v.password} | ${v.phone} | ${v.email}\n`;
+    });
+    ids.innerText=out;
+    payment.style.display="none";
+    success.style.display="block";
+  },{onlyOnce:true});
 }
 
 window.copy=()=>{
- navigator.clipboard.writeText(ids.innerText);
- alert("IDs Copied");
+  navigator.clipboard.writeText(ids.innerText);
+  alert("IDs Copied");
 };
 </script>
+
+</body>
+</html>
