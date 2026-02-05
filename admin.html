@@ -1,72 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#eef2f5;
+  padding:20px;
+}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+input,button{
+  padding:10px;
+  margin-top:8px;
+  width:100%;
+}
+button{
+  background:#4f46e5;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.order{
+  border:1px solid #ddd;
+  padding:10px;
+  margin-top:10px;
+  border-radius:6px;
+}
+small{color:#555}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h3>Update Price</h3>
+<input id="price" type="number" placeholder="Price per ID">
+<button onclick="setPrice()">Update Price</button>
+</div>
+
+<div class="card">
+<h3>Add ID Stock</h3>
+<input id="u" placeholder="Username">
+<input id="p" placeholder="Password">
+<input id="ph" placeholder="Phone">
+<input id="e" placeholder="Email">
+<button onclick="addID()">Add ID</button>
+</div>
+
+<div class="card">
+<h3>Paid Orders (Verify)</h3>
+<div id="orders">Loading...</div>
+</div>
+
 <script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import {getDatabase,ref,onValue,push,update,remove} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-const app=initializeApp({
- apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
- databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
+const app = initializeApp({
+  apiKey: "AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
+  databaseURL: "https://database-7209-default-rtdb.firebaseio.com"
 });
-const db=getDatabase(app);
+const db = getDatabase(app);
 
-/* PRICE */
-window.setPrice=()=>update(ref(db,"settings"),{
- pricePerId:+price.value
-});
+/* UPDATE PRICE */
+window.setPrice = ()=>{
+  update(ref(db,"settings"),{
+    pricePerId: Number(price.value)
+  });
+  alert("Price updated");
+};
 
-/* ADD ID */
-window.addID=()=>{
- push(ref(db,"stock"),{
-  username:u.value,
-  password:p.value,
-  phone:ph.value,
-  email:e.value,
-  time:Date.now()
- });
- alert("ID Added");
+/* ADD ID (STOCK) */
+window.addID = ()=>{
+  if(!u.value||!p.value||!ph.value||!e.value){
+    alert("Fill all fields");
+    return;
+  }
+  push(ref(db,"stock"),{
+    username:u.value,
+    password:p.value,
+    phone:ph.value,
+    email:e.value,
+    time:Date.now()
+  });
+  u.value=p.value=ph.value=e.value="";
+  alert("ID Added");
 };
 
 /* SHOW ONLY PAID ORDERS */
 onValue(ref(db,"orders"),snap=>{
- orders.innerHTML="";
- snap.forEach(o=>{
-  const v=o.val();
-  if(v.status==="paid"){
-   orders.innerHTML+=`
-   <div class="order">
-     <b>Qty:</b> ${v.qty}<br>
-     <b>UTR:</b> ${v.utr}<br>
-     <button onclick="verify('${o.key}',${v.qty})">
-       Verify & Deliver
-     </button>
-   </div>`;
-  }
- });
+  orders.innerHTML="";
+  snap.forEach(o=>{
+    const v=o.val();
+    if(v.status==="paid"){
+      orders.innerHTML+=`
+      <div class="order">
+        <b>Qty:</b> ${v.qty}<br>
+        <b>Amount:</b> ₹${v.amount}<br>
+        <b>UTR:</b> ${v.utr}<br>
+        <small>${new Date(v.time).toLocaleString()}</small>
+        <button onclick="verify('${o.key}',${v.qty})">
+          Verify & Deliver
+        </button>
+      </div>`;
+    }
+  });
+  if(!orders.innerHTML) orders.innerHTML="No paid orders";
 });
 
-/* VERIFY */
-window.verify=async(orderId,qty)=>{
- const stockSnap = await new Promise(r=>
-   onValue(ref(db,"stock"),s=>r(s),{onlyOnce:true})
- );
+/* VERIFY & DELIVER */
+window.verify = async(orderId,qty)=>{
+  const stockSnap = await new Promise(r=>
+    onValue(ref(db,"stock"),s=>r(s),{onlyOnce:true})
+  );
 
- let delivered={},count=0;
+  let delivered={},count=0;
 
- stockSnap.forEach(s=>{
+  stockSnap.forEach(s=>{
+    if(count<qty){
+      delivered[s.key]=s.val();
+      remove(ref(db,"stock/"+s.key));
+      count++;
+    }
+  });
+
   if(count<qty){
-   delivered[s.key]=s.val();
-   remove(ref(db,"stock/"+s.key));
-   count++;
+    alert("Not enough stock");
+    return;
   }
- });
 
- if(count<qty){
-  alert("Not enough stock");
-  return;
- }
+  update(ref(db,"deliveries/"+orderId),{
+    ids:delivered,
+    time:Date.now()
+  });
 
- update(ref(db,"deliveries/"+orderId),delivered);
- update(ref(db,"orders/"+orderId),{status:"verified"});
+  update(ref(db,"orders/"+orderId),{
+    status:"verified"
+  });
 
- alert("IDs Delivered Successfully");
+  alert("Order verified & IDs delivered");
 };
 </script>
+
+</body>
+</html>
