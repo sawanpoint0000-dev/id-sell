@@ -88,8 +88,10 @@ body{
   font-size:17px;
   font-weight:900;
   color:#fff;
-  background:linear-gradient(90deg,#ff4d4d,#ff2f7b)
+  background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
+  transition: transform 0.2s;
 }
+.buy:hover{transform: scale(1.05);}
 .icons{
   display:flex;
   justify-content:space-around;
@@ -107,7 +109,7 @@ body{
   justify-content:center;
   margin:auto auto 6px;
   color:#6b5cff;
-  font-size:20px
+  font-size:20px;
 }
 .list{
   background:#6b5cff;
@@ -150,13 +152,35 @@ pre{
   font-weight:800;
   margin-top:14px
 }
+
+/* Super Stylish Popup */
+#custom-alert{
+  position: fixed;
+  top:50%;
+  left:50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: linear-gradient(135deg,#ff4d4d,#ff2f7b);
+  color:#fff;
+  font-weight:700;
+  padding:20px 30px;
+  border-radius:25px;
+  font-size:16px;
+  text-align:center;
+  z-index:9999;
+  opacity:0;
+  box-shadow:0 10px 30px rgba(0,0,0,0.3);
+  transition: transform 0.5s cubic-bezier(0.68,-0.55,0.265,1.55), opacity 0.5s ease;
+}
+#custom-alert.show{
+  opacity:1;
+  transform: translate(-50%, -50%) scale(1);
+}
 </style>
 </head>
 
 <body>
 <div class="container">
 
-<!-- Select & Quantity -->
 <div class="card" id="select">
 <div class="header">🛍️ REAL SELLER <small>PREMIUM ID STORE</small></div>
 <div class="badge">⚡ Limited Stock!</div>
@@ -184,8 +208,7 @@ pre{
              style="width:24px;height:24px;">
     </div>
     WhatsApp
-</div>
-
+ </div>
 </div>
 </div>
 
@@ -198,13 +221,12 @@ pre{
 
 <div class="footer">Why Choose Our IDs?</div>
 
-<!-- Payment Section -->
 <div class="card" id="payment" style="display:none">
 <h3>Scan & Pay</h3>
 <p>Qty: <b id="pq"></b></p>
 <p>Total: ₹<b id="pa"></b></p>
 <img id="qr" width="220" style="display:block;margin:auto">
-<input class="custom" id="utr" placeholder="Enter UTR">
+<input class="custom" id="utr" placeholder="Enter UTR (12 digits)">
 <button class="buy" onclick="submit()">Submit Payment</button>
 </div>
 
@@ -220,6 +242,9 @@ pre{
 <pre id="ids"></pre>
 <button class="copy" onclick="copy()">Copy All IDs</button>
 </div>
+
+<!-- Super Popup -->
+<div id="custom-alert"></div>
 
 </div>
 
@@ -239,7 +264,15 @@ const upi="airtelshop09@ybl";
 
 let qty=0,price=0,orderId="";
 
-// 🔥 Live Stock Update (unsold only)
+// Super Stylish Alert Function
+function showAlert(msg){
+    const alertBox = document.getElementById("custom-alert");
+    alertBox.innerText = msg;
+    alertBox.classList.add("show");
+    setTimeout(()=>{alertBox.classList.remove("show");},2500);
+}
+
+// Live Stock Update
 onValue(ref(db,"stock"),snapshot=>{
   const data=snapshot.val();
   if(!data) stockEl.innerText=0;
@@ -272,7 +305,7 @@ window.customQty=v=>{
 
 // Buy Button
 buy.onclick=()=>{
- if(qty<=0) return alert("Enter valid quantity");
+ if(qty<=0) return showAlert("Enter valid quantity!");
  orderId=push(ref(db,"orders"),{
   qty,amount:qty*price,status:"created",time:Date.now()
  }).key;
@@ -287,16 +320,23 @@ buy.onclick=()=>{
  qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiData)}`;
 };
 
-// Submit Payment (UTR)
-window.submit=()=>{
- if(!utr.value) return alert("Enter UTR");
- update(ref(db,"orders/"+orderId),{utr:utr.value,status:"pending"});
- payment.style.display="none";
- processing.style.display="block";
- // Listen for verification
- onValue(ref(db,"orders/"+orderId+"/status"),s=>{
-  if(s.val()==="verified") load();
- });
+// UTR Validation: exactly 12 digits
+function isValidUTR(utr){return /^\d{12}$/.test(utr);}
+
+// Submit Payment
+window.submit = () => {
+    const utrVal = utr.value.trim();
+    if(!utrVal) return showAlert("Enter UTR!");
+    if(!isValidUTR(utrVal)) return showAlert("Invalid UTR! Must be 12 digits.");
+
+    update(ref(db,"orders/"+orderId), {utr: utrVal, status:"pending"});
+
+    payment.style.display = "none";
+    processing.style.display = "block";
+
+    onValue(ref(db,"orders/"+orderId+"/status"), s => {
+        if(s.val() === "verified") load();
+    });
 };
 
 // Load Delivered IDs
@@ -320,8 +360,6 @@ window.copy=()=>navigator.clipboard.writeText(ids.innerText);
 window.openWhatsApp = () => {
     window.open(`https://wa.me/${whatsappNumber}?text=Hello Support 👋`, "_blank");
 };
-
-
 </script>
 </body>
 </html>
