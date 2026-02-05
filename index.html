@@ -16,10 +16,7 @@ body{
   background:linear-gradient(180deg,#4f46e5,#6d6af5);
   padding:18px;
 }
-.container{
-  max-width:420px;
-  margin:auto;
-}
+.container{max-width:420px;margin:auto}
 .card{
   background:#fff;
   border-radius:22px;
@@ -27,25 +24,10 @@ body{
   margin-bottom:18px;
   box-shadow:0 12px 30px rgba(0,0,0,.25);
 }
-h2{
-  margin:0 0 14px;
-  text-align:center;
-  color:#4f46e5;
-  font-size:22px;
-}
-.sub{
-  text-align:center;
-  color:#666;
-  font-size:13px;
-  margin-bottom:16px;
-}
+h2{text-align:center;color:#4f46e5;margin:0 0 14px}
+.sub{text-align:center;color:#666;font-size:13px;margin-bottom:16px}
 
-/* quantity boxes */
-.options{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:14px;
-}
+.options{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .box{
   background:#f4f6ff;
   border-radius:18px;
@@ -54,21 +36,10 @@ h2{
   font-weight:700;
   cursor:pointer;
   border:2px solid transparent;
-  transition:.2s;
 }
-.box small{
-  display:block;
-  font-weight:500;
-  color:#555;
-  margin-top:6px;
-}
-.box.active{
-  background:#eef0ff;
-  border-color:#4f46e5;
-  color:#4f46e5;
-}
+.box small{display:block;color:#555;font-weight:500;margin-top:6px}
+.box.active{background:#eef0ff;border-color:#4f46e5;color:#4f46e5}
 
-/* inputs */
 input{
   width:100%;
   padding:15px;
@@ -77,12 +48,7 @@ input{
   margin-top:14px;
   font-size:15px;
 }
-input:focus{
-  outline:none;
-  border-color:#4f46e5;
-}
 
-/* buttons */
 button{
   width:100%;
   padding:16px;
@@ -97,24 +63,33 @@ button{
 button.active{
   background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
 }
-button.copy{
-  background:#22c55e;
-}
+button.copy{background:#22c55e}
 
 /* payment */
-.pay-info{
+.pay-info{text-align:center}
+.amount{font-size:20px;font-weight:800}
+.qr-wrap{display:flex;justify-content:center;margin:14px 0}
+
+/* processing */
+.processing{
   text-align:center;
-  margin-bottom:12px;
+  padding:30px 0;
 }
-.amount{
-  font-size:20px;
-  font-weight:800;
-  color:#111;
+.spinner{
+  width:50px;height:50px;
+  border:5px solid #e5e7eb;
+  border-top:5px solid #4f46e5;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 14px;
 }
-.qr-wrap{
-  display:flex;
-  justify-content:center;
-  margin:14px 0;
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+.processing p{
+  font-weight:600;
+  color:#333;
 }
 
 /* success */
@@ -126,8 +101,6 @@ pre{
   white-space:pre-wrap;
   line-height:1.45;
 }
-
-/* success tick */
 .success-title{
   text-align:center;
   font-size:20px;
@@ -144,19 +117,16 @@ pre{
 <!-- SELECT -->
 <div class="card" id="select">
 <h2>Select IDs</h2>
-<div class="sub">Choose quantity to continue</div>
-<div class="sub">Email Password- Kumar1234@</div>
-
+<div class="sub">Choose quantity</div>
 
 <div class="options">
   <div class="box" onclick="setQty(1,this)">1 ID<small>Instant</small></div>
-  <div class="box" onclick="setQty(2,this)">2 IDs<small>Best value</small></div>
+  <div class="box" onclick="setQty(2,this)">2 IDs<small>Best</small></div>
   <div class="box" onclick="setQty(5,this)">5 IDs<small>Popular</small></div>
   <div class="box" onclick="setQty(10,this)">10 IDs<small>Bulk</small></div>
 </div>
 
-<input id="custom" type="number" placeholder="Enter custom quantity" oninput="customQty()">
-
+<input id="custom" type="number" placeholder="Custom quantity" oninput="customQty()">
 <button id="buy" onclick="pay()">Buy Now</button>
 </div>
 
@@ -165,7 +135,7 @@ pre{
 <h2>Complete Payment</h2>
 
 <div class="pay-info">
-<div>Quantity: <b id="pq"></b></div>
+Qty: <b id="pq"></b><br>
 <div class="amount">₹ <span id="pa"></span></div>
 </div>
 
@@ -173,8 +143,16 @@ pre{
 <img id="qr" width="220">
 </div>
 
-<input id="utr" placeholder="Enter UTR / Reference No">
+<input id="utr" placeholder="Enter UTR / Reference">
 <button class="active" onclick="submit()">Submit Payment</button>
+</div>
+
+<!-- PROCESSING -->
+<div class="card" id="processing" style="display:none">
+<div class="processing">
+  <div class="spinner"></div>
+  <p>Payment processing…<br>Please wait for admin verification</p>
+</div>
 </div>
 
 <!-- SUCCESS -->
@@ -231,7 +209,11 @@ window.pay=()=>{
 
 window.submit=()=>{
  if(!utr.value) return alert("UTR required");
+
  update(ref(db,"orders/"+orderId),{utr:utr.value});
+
+ payment.style.display="none";
+ processing.style.display="block";
 
  onValue(ref(db,"orders/"+orderId+"/status"),s=>{
   if(s.val()==="verified") loadIDs();
@@ -243,10 +225,10 @@ function loadIDs(){
   let out="";
   snap.forEach(c=>{
    let v=c.val();
-   out+=`${v.username}\n${v.password}\n${v.phone}\n${v.email}\n\n--------------------\n\n`;
+   out+=`${v.username}\n${v.password}\n${v.phone}\n${v.email}\n\n------------------\n\n`;
   });
   ids.innerText=out;
-  payment.style.display="none";
+  processing.style.display="none";
   success.style.display="block";
  },{onlyOnce:true});
 }
