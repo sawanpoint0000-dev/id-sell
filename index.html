@@ -1,49 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buy IDs</title>
+
 <style>
-*{font-family:Arial}
-body{background:#6a6fdc;padding:15px}
-.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:15px}
-.options{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.box{background:#eef;padding:15px;text-align:center;border-radius:14px;cursor:pointer}
-.box.active{background:#dfe2ff;font-weight:bold}
-button{padding:14px;width:100%;border:none;border-radius:30px;font-size:16px}
-button.active{background:#ff2f7b;color:#fff}
-pre{background:#f8fafc;padding:15px;border-radius:12px}
-.copy{background:#22c55e;color:#fff}
+*{
+  box-sizing:border-box;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(180deg,#4f46e5,#6d6af5);
+  padding:18px;
+}
+.container{
+  max-width:420px;
+  margin:auto;
+}
+.card{
+  background:#fff;
+  border-radius:22px;
+  padding:20px;
+  margin-bottom:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+h2{
+  margin:0 0 14px;
+  text-align:center;
+  color:#4f46e5;
+  font-size:22px;
+}
+.sub{
+  text-align:center;
+  color:#666;
+  font-size:13px;
+  margin-bottom:16px;
+}
+
+/* quantity boxes */
+.options{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+.box{
+  background:#f4f6ff;
+  border-radius:18px;
+  padding:18px;
+  text-align:center;
+  font-weight:700;
+  cursor:pointer;
+  border:2px solid transparent;
+  transition:.2s;
+}
+.box small{
+  display:block;
+  font-weight:500;
+  color:#555;
+  margin-top:6px;
+}
+.box.active{
+  background:#eef0ff;
+  border-color:#4f46e5;
+  color:#4f46e5;
+}
+
+/* inputs */
+input{
+  width:100%;
+  padding:15px;
+  border-radius:16px;
+  border:1.5px solid #ddd;
+  margin-top:14px;
+  font-size:15px;
+}
+input:focus{
+  outline:none;
+  border-color:#4f46e5;
+}
+
+/* buttons */
+button{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:32px;
+  font-size:16px;
+  font-weight:700;
+  margin-top:18px;
+  background:#b5b5b5;
+  color:#fff;
+}
+button.active{
+  background:linear-gradient(90deg,#ff4d4d,#ff2f7b);
+}
+button.copy{
+  background:#22c55e;
+}
+
+/* payment */
+.pay-info{
+  text-align:center;
+  margin-bottom:12px;
+}
+.amount{
+  font-size:20px;
+  font-weight:800;
+  color:#111;
+}
+.qr-wrap{
+  display:flex;
+  justify-content:center;
+  margin:14px 0;
+}
+
+/* success */
+pre{
+  background:#f8fafc;
+  border-radius:18px;
+  padding:16px;
+  font-size:14px;
+  white-space:pre-wrap;
+  line-height:1.45;
+}
+
+/* success tick */
+.success-title{
+  text-align:center;
+  font-size:20px;
+  font-weight:800;
+  color:#16a34a;
+  margin-bottom:12px;
+}
 </style>
 </head>
 
 <body>
+<div class="container">
 
+<!-- SELECT -->
 <div class="card" id="select">
-<h3>Select Quantity</h3>
+<h2>Select IDs</h2>
+<div class="sub">Choose quantity to continue</div>
+
 <div class="options">
-<div class="box" onclick="setQty(1,this)">1 ID</div>
-<div class="box" onclick="setQty(2,this)">2 IDs</div>
-<div class="box" onclick="setQty(5,this)">5 IDs</div>
-<div class="box" onclick="setQty(10,this)">10 IDs</div>
-</div>
-<input id="custom" type="number" placeholder="Custom Qty" oninput="customQty()">
-<button id="buy" onclick="pay()">Buy</button>
+  <div class="box" onclick="setQty(1,this)">1 ID<small>Instant</small></div>
+  <div class="box" onclick="setQty(2,this)">2 IDs<small>Best value</small></div>
+  <div class="box" onclick="setQty(5,this)">5 IDs<small>Popular</small></div>
+  <div class="box" onclick="setQty(10,this)">10 IDs<small>Bulk</small></div>
 </div>
 
+<input id="custom" type="number" placeholder="Enter custom quantity" oninput="customQty()">
+
+<button id="buy" onclick="pay()">Buy Now</button>
+</div>
+
+<!-- PAYMENT -->
 <div class="card" id="payment" style="display:none">
-<h3>Payment</h3>
-<p>Qty: <b id="pq"></b></p>
-<p>Total: ₹<b id="pa"></b></p>
-<img id="qr" width="200"><br>
-<input id="utr" placeholder="Enter UTR">
-<button class="active" onclick="submit()">Submit</button>
+<h2>Complete Payment</h2>
+
+<div class="pay-info">
+<div>Quantity: <b id="pq"></b></div>
+<div class="amount">₹ <span id="pa"></span></div>
 </div>
 
+<div class="qr-wrap">
+<img id="qr" width="220">
+</div>
+
+<input id="utr" placeholder="Enter UTR / Reference No">
+<button class="active" onclick="submit()">Submit Payment</button>
+</div>
+
+<!-- SUCCESS -->
 <div class="card" id="success" style="display:none">
-<h3>✅ IDs Delivered</h3>
+<div class="success-title">✅ Payment Successful</div>
 <pre id="ids"></pre>
 <button class="copy" onclick="copy()">Copy All IDs</button>
+</div>
+
 </div>
 
 <script type="module">
@@ -86,7 +224,7 @@ window.pay=()=>{
  payment.style.display="block";
  pq.innerText=qty;
  pa.innerText=qty*price;
- qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${upi}&am=${qty*price}&cu=INR`;
+ qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=upi://pay?pa=${upi}&am=${qty*price}&cu=INR`;
 };
 
 window.submit=()=>{
