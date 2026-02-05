@@ -309,7 +309,10 @@ function load(){
 window.copy=()=>navigator.clipboard.writeText(ids.innerText);
 
 // Open WhatsApp
-window.openWhatsApp=()=>{window.open(`https://wa.me/${}?text=Hello Support 👋`,"_blank");};
+window.openWhatsApp = () => {
+    window.open(`https://wa.me/${whatsappNumber}?text=Hello Support 👋`, "_blank");
+};
+
 
 </script>
 </body>
