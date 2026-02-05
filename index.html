@@ -156,20 +156,14 @@ pre{
 <body>
 <div class="container">
 
+<!-- Select & Quantity -->
 <div class="card" id="select">
 <div class="header">🛍️ ISLAM BHAI <small>PREMIUM ID STORE</small></div>
-
 <div class="badge">⚡ Limited Stock!</div>
 <div class="stock">ID Available: <span id="stock">0</span></div>
-
-<div class="note">
-Fresh verified IDs<br>
-Automatic delivery after payment<br>
-Password: Kolkata123
-</div>
+<div class="note">Fresh verified IDs<br>Automatic delivery after payment<br>Password: Kolkata123</div>
 
 <h4>Select Number of IDs</h4>
-
 <div class="options">
  <div class="box" onclick="pick(1,this)">1 ID<span id="p1"></span></div>
  <div class="box" onclick="pick(2,this)">2 IDs<span id="p2"></span></div>
@@ -196,6 +190,7 @@ Password: Kolkata123
 
 <div class="footer">Why Choose Our IDs?</div>
 
+<!-- Payment Section -->
 <div class="card" id="payment" style="display:none">
 <h3>Scan & Pay</h3>
 <p>Qty: <b id="pq"></b></p>
@@ -228,15 +223,22 @@ const app=initializeApp({
  apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
  databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
 });
-const db=getDatabase(app);
 
-const whatsappNumber="919876543210"; // apna number
+const db=getDatabase(app);
+const stockEl=document.getElementById("stock");
+const whatsappNumber="919876543210";
 const upi="airtelshop09@ybl";
 
 let qty=0,price=0,orderId="";
 
-onValue(ref(db,"stock"),s=>stock.innerText=s.size||0);
+// 🔥 Live Stock Update (unsold only)
+onValue(ref(db,"stock"),snapshot=>{
+  const data=snapshot.val();
+  if(!data) stockEl.innerText=0;
+  else stockEl.innerText=Object.values(data).filter(id=>!id.sold).length;
+});
 
+// Price per ID
 onValue(ref(db,"settings/pricePerId"),s=>{
  price=s.val()||0;
  p1.innerText="₹"+price;
@@ -245,6 +247,7 @@ onValue(ref(db,"settings/pricePerId"),s=>{
  p10.innerText="₹"+price*10;
 });
 
+// Select Quantity
 window.pick=(q,e)=>{
  qty=q;
  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
@@ -252,12 +255,14 @@ window.pick=(q,e)=>{
  buy.innerText=`Buy Now - ₹${qty*price}`;
 };
 
+// Custom Quantity
 window.customQty=v=>{
  qty=+v;
  document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
  if(qty>0) buy.innerText=`Buy Now - ₹${qty*price}`;
 };
 
+// Buy Button
 buy.onclick=()=>{
  if(qty<=0) return alert("Enter valid quantity");
  orderId=push(ref(db,"orders"),{
@@ -268,23 +273,25 @@ buy.onclick=()=>{
  payment.style.display="block";
  pq.innerText=qty;
  pa.innerText=qty*price;
- const amount = qty * price;
-const upiData = `upi://pay?pa=${upi}&pn=Islam%20ID%20Store&am=${amount}&cu=INR&mode=02&tn=ID%20Purchase`;
 
-qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiData)}`;
-
+ const amount=qty*price;
+ const upiData=`upi://pay?pa=${upi}&pn=Islam%20ID%20Store&am=${amount}&cu=INR&mode=02&tn=ID%20Purchase`;
+ qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiData)}`;
 };
 
+// Submit Payment (UTR)
 window.submit=()=>{
  if(!utr.value) return alert("Enter UTR");
  update(ref(db,"orders/"+orderId),{utr:utr.value,status:"pending"});
  payment.style.display="none";
  processing.style.display="block";
+ // Listen for verification
  onValue(ref(db,"orders/"+orderId+"/status"),s=>{
   if(s.val()==="verified") load();
  });
 };
 
+// Load Delivered IDs
 function load(){
  onValue(ref(db,"deliveries/"+orderId),snap=>{
   let t="";
@@ -298,11 +305,12 @@ function load(){
  },{onlyOnce:true});
 }
 
+// Copy IDs
 window.copy=()=>navigator.clipboard.writeText(ids.innerText);
 
-window.openWhatsApp=()=>{
- window.open(`https://wa.me/${whatsappNumber}?text=Hello Support 👋`,"_blank");
-};
+// Open WhatsApp
+window.openWhatsApp=()=>{window.open(`https://wa.me/${whatsappNumber}?text=Hello Support 👋`,"_blank");};
+
 </script>
 </body>
 </html>
