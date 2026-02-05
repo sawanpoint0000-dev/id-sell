@@ -87,7 +87,11 @@ email"></textarea>
 <div id="orders"></div>
 
 <button class="logout" onclick="logout()">Logout</button>
-</div>
+
+<!-- Audio Alert -->
+<audio id="alertAudio" loop>
+ <source src="alert.mp3" type="audio/mpeg">
+</audio>
 
 </div>
 
@@ -104,18 +108,24 @@ const app = initializeApp({
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
+let audioStarted = false;
+
 /* LOGIN */
-window.login=()=>{
+window.login=()=> {
  signInWithEmailAndPassword(auth,email.value.trim(),pass.value)
  .then(()=>{
   loginCard.style.display="none";
   panel.style.display="block";
+  // Allow audio to play after login click
+  const audio = document.getElementById("alertAudio");
+  audio.play().catch(()=>console.log("Audio autoplay blocked, interaction needed"));
+  audioStarted = true;
  })
  .catch(e=>alert(e.message));
 };
 
 /* LOGOUT */
-window.logout=()=>{
+window.logout=()=> {
  signOut(auth).then(()=>{
   panel.style.display="none";
   loginCard.style.display="block";
@@ -123,16 +133,18 @@ window.logout=()=>{
 };
 
 /* PRICE */
-window.savePrice=()=>{
+window.savePrice=()=> {
  set(ref(db,"settings/pricePerId"),Number(price.value));
- alert("Price updated ✅");
+ console.log("Price updated ✅");
 };
 
 /* ADD STOCK */
-window.addIDs=()=>{
+window.addIDs=()=> {
  const lines=ids.value.trim().split("\n");
- if(lines.length%4!==0) return alert("Each ID needs 4 lines");
-
+ if(lines.length%4!==0) {
+   console.log("Each ID needs 4 lines");
+   return;
+ }
  for(let i=0;i<lines.length;i+=4){
   push(ref(db,"stock"),{
    username:lines[i],
@@ -143,7 +155,7 @@ window.addIDs=()=>{
   });
  }
  ids.value="";
- alert("IDs added ✅");
+ console.log("IDs added ✅");
 };
 
 /* STOCK COUNT */
@@ -169,6 +181,13 @@ onValue(ref(db,"orders"),snap=>{
     <button class="verify" onclick="verify('${o.key}',${v.qty})">Verify & Deliver</button>
    `;
    orders.appendChild(d);
+
+   // Play alert sound and vibrate
+   if(audioStarted){
+     const audio = document.getElementById("alertAudio");
+     audio.play().catch(()=>console.log("Audio blocked"));
+     if(navigator.vibrate) navigator.vibrate([500,200,500,200]);
+   }
   }
  });
 });
@@ -184,7 +203,7 @@ window.verify=(orderId,qty)=>{
   });
 
   if(taken.length<qty){
-   alert("Not enough stock ❌");
+   console.log("Not enough stock ❌");
    return;
   }
 
@@ -199,8 +218,8 @@ window.verify=(orderId,qty)=>{
   });
 
   update(ref(db,"orders/"+orderId),{status:"verified"});
-  alert("Order verified & delivered ✅");
- },{onlyOnce:true});
+  console.log("Order verified & delivered ✅");
+ });
 };
 </script>
 </body>
