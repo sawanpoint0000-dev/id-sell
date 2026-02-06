@@ -53,6 +53,7 @@ button{
 <body>
 <div class="container">
 
+<!-- LOGIN -->
 <div class="card" id="loginCard">
 <h2>🔐 Admin Login</h2>
 <input id="email" placeholder="Admin Email">
@@ -60,74 +61,97 @@ button{
 <button onclick="login()">Login</button>
 </div>
 
+<!-- PANEL -->
 <div class="card" id="panel" style="display:none">
 <h2>⚙️ Admin Panel</h2>
 
 <input id="price" type="number" placeholder="Price per ID">
 <button onclick="savePrice()">Update Price</button>
 
-<hr>
+<hr style="margin:16px 0">
 
-<textarea id="ids" rows="6" placeholder="username
+<textarea id="ids" rows="6" placeholder="Add IDs (4 lines per ID)
+username
 password
 phone
 email"></textarea>
-<button onclick="addIDs()">Add IDs</button>
+<button onclick="addIDs()">Add IDs to Stock</button>
+
+<hr style="margin:16px 0">
 
 <h3>📦 Available Stock: <span id="stock">0</span></h3>
+
+<hr style="margin:16px 0">
 
 <h3>⏳ Pending Orders</h3>
 <div id="orders"></div>
 
 <button class="logout" onclick="logout()">Logout</button>
 
-<audio id="alertAudio">
- <source src="beep.mp3" type="audio/mpeg">
-</audio>
+<!-- 🔔 SOUND -->
+<audio id="alertAudio" src="beep.mp3" loop></audio>
+
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-import { getDatabase, ref, set, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, update, get }
+from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
+/* 🔥 FIREBASE */
 const app = initializeApp({
  apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
  databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
 });
-
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
+/* 🔔 SOUND FLAGS */
+let audioAllowed=false;
+let isBeeping=false;
+
 /* LOGIN */
 window.login=()=>{
- signInWithEmailAndPassword(auth,email.value,pass.value)
+ signInWithEmailAndPassword(auth,email.value.trim(),pass.value)
  .then(()=>{
   loginCard.style.display="none";
   panel.style.display="block";
+
+  const audio=document.getElementById("alertAudio");
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime=0;
+    audioAllowed=true;
+  }).catch(()=>{});
  })
  .catch(e=>alert(e.message));
 };
 
 /* LOGOUT */
-window.logout=()=>signOut(auth).then(()=>{
- panel.style.display="none";
- loginCard.style.display="block";
-});
+window.logout=()=>{
+ signOut(auth).then(()=>{
+  panel.style.display="none";
+  loginCard.style.display="block";
+ });
+};
 
 /* PRICE */
-window.savePrice=()=>set(ref(db,"settings/pricePerId"),Number(price.value));
+window.savePrice=()=>{
+ set(ref(db,"settings/pricePerId"),Number(price.value));
+};
 
-/* ADD IDS */
+/* ADD STOCK */
 window.addIDs=()=>{
- const l=ids.value.trim().split("\n");
- if(l.length%4!==0) return alert("4 lines per ID");
- for(let i=0;i<l.length;i+=4){
+ const lines=ids.value.trim().split("\n");
+ if(lines.length%4!==0) return;
+
+ for(let i=0;i<lines.length;i+=4){
   push(ref(db,"stock"),{
-   username:l[i],
-   password:l[i+1],
-   phone:l[i+2],
-   email:l[i+3],
+   username:lines[i],
+   password:lines[i+1],
+   phone:lines[i+2],
+   email:lines[i+3],
    sold:false
   });
  }
@@ -135,58 +159,89 @@ window.addIDs=()=>{
 };
 
 /* STOCK COUNT */
-onValue(ref(db,"stock"),s=>{
+onValue(ref(db,"stock"),snap=>{
  let c=0;
- s.forEach(x=>{ if(!x.val().sold) c++; });
+ snap.forEach(s=>{ if(!s.val().sold) c++; });
  stock.innerText=c;
 });
 
-/* ORDERS */
+/* 🔔 PENDING ORDERS + CONTINUOUS BEEP */
 onValue(ref(db,"orders"),snap=>{
  orders.innerHTML="";
+ let pending=0;
+
  snap.forEach(o=>{
   const v=o.val();
   if(v.status==="pending"){
+   pending++;
+
    const d=document.createElement("div");
    d.className="order";
    d.innerHTML=`
-    <b>Order:</b> ${o.key}
+    <b>Order ID:</b> ${o.key}
     <b>Qty:</b> ${v.qty}
     <b>Amount:</b> ₹${v.amount}
-    <button class="verify" onclick="verify('${o.key}',${v.qty})">Verify</button>
+    <b>UTR:</b> ${v.utr||"N/A"}
+    <button class="verify" onclick="verify('${o.key}',${v.qty})">
+     Verify & Deliver
+    </button>
    `;
    orders.appendChild(d);
-
-   document.getElementById("alertAudio").play().catch(()=>{});
-   navigator.vibrate?.(300);
   }
  });
+
+ const audio=document.getElementById("alertAudio");
+
+ if(pending>0 && audioAllowed && !isBeeping){
+  audio.currentTime=0;
+  audio.play().catch(()=>{});
+  isBeeping=true;
+ }
+
+ if(pending===0 && isBeeping){
+  audio.pause();
+  audio.currentTime=0;
+  isBeeping=false;
+ }
 });
 
-/* VERIFY (FIXED) */
+/* ✅ VERIFY – BUG FIXED */
 window.verify=async(orderId,qty)=>{
- const snap=await get(ref(db,"stock"));
- let free=[];
- snap.forEach(s=>{
-  if(!s.val().sold && free.length<qty){
-   free.push({id:s.key,...s.val()});
+ const orderRef=ref(db,"orders/"+orderId);
+ const orderSnap=await get(orderRef);
+
+ if(!orderSnap.exists()) return;
+ if(orderSnap.val().status!=="pending") return;
+
+ await update(orderRef,{status:"processing"});
+
+ const stockSnap=await get(ref(db,"stock"));
+ let selected=[];
+
+ stockSnap.forEach(s=>{
+  if(!s.val().sold && selected.length<qty){
+   selected.push({id:s.key,...s.val()});
   }
  });
 
- if(free.length<qty) return alert("Not enough stock");
+ if(selected.length<qty){
+  await update(orderRef,{status:"pending"});
+  alert("Not enough stock");
+  return;
+ }
 
- for(const id of free){
-  await update(ref(db,"stock/"+id.id),{sold:true});
+ for(const item of selected){
+  await update(ref(db,"stock/"+item.id),{sold:true});
   await push(ref(db,"deliveries/"+orderId),{
-   username:id.username,
-   password:id.password,
-   phone:id.phone,
-   email:id.email
+   username:item.username,
+   password:item.password,
+   phone:item.phone,
+   email:item.email
   });
  }
 
- await update(ref(db,"orders/"+orderId),{status:"verified"});
- alert("Delivered successfully ✅");
+ await update(orderRef,{status:"verified"});
+ alert("✅ "+qty+" ID delivered");
 };
 </script>
 </body>
