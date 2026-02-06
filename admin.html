@@ -88,10 +88,8 @@ email"></textarea>
 
 <button class="logout" onclick="logout()">Logout</button>
 
-<!-- 🔊 ALERT AUDIO -->
-<audio id="alertAudio" loop>
- <source src="alert.mp3" type="audio/mpeg">
-</audio>
+<!-- 🔊 BEEP AUDIO -->
+<audio id="beep" src="beep.mp3" loop></audio>
 
 </div>
 
@@ -109,18 +107,20 @@ const auth = getAuth(app);
 const db   = getDatabase(app);
 
 /* 🔔 BEEP CONTROL */
-let audioAllowed = false;
-let isBeeping = false;
+let audioAllowed=false;
+let isBeeping=false;
 
 /* LOGIN */
-window.login = ()=>{
+window.login=()=>{
  signInWithEmailAndPassword(auth,email.value.trim(),pass.value)
  .then(()=>{
   loginCard.style.display="none";
   panel.style.display="block";
 
-  const audio=document.getElementById("alertAudio");
+  const audio=document.getElementById("beep");
   audio.volume=1;
+
+  // browser permission trick
   audio.play().then(()=>{
     audio.pause();
     audio.currentTime=0;
@@ -147,7 +147,6 @@ window.savePrice=()=>{
 window.addIDs=()=>{
  const lines=ids.value.trim().split("\n");
  if(lines.length%4!==0) return alert("4 lines per ID required");
-
  for(let i=0;i<lines.length;i+=4){
   push(ref(db,"stock"),{
    username:lines[i],
@@ -167,15 +166,15 @@ onValue(ref(db,"stock"),snap=>{
  stock.innerText=c;
 });
 
-/* 🔥 PENDING ORDERS + AUTO BEEP */
+/* 🔥 PENDING ORDER = AUTO BEEP */
 onValue(ref(db,"orders"),snap=>{
  orders.innerHTML="";
- let pendingCount=0;
+ let pending=0;
 
  snap.forEach(o=>{
   const v=o.val();
   if(v.status==="pending"){
-   pendingCount++;
+   pending++;
 
    const d=document.createElement("div");
    d.className="order";
@@ -183,7 +182,7 @@ onValue(ref(db,"orders"),snap=>{
     <b>Order ID:</b> ${o.key}
     <b>Qty:</b> ${v.qty}
     <b>Amount:</b> ₹${v.amount}
-    <b>UTR:</b> ${v.utr || "N/A"}
+    <b>UTR:</b> ${v.utr||"N/A"}
     <button class="verify" onclick="verify('${o.key}',${v.qty})">
       Verify & Deliver
     </button>
@@ -192,10 +191,10 @@ onValue(ref(db,"orders"),snap=>{
   }
  });
 
- const audio=document.getElementById("alertAudio");
+ const audio=document.getElementById("beep");
 
- /* 🔔 START BEEP */
- if(pendingCount>0 && audioAllowed && !isBeeping){
+ /* 🔔 START */
+ if(pending>0 && audioAllowed && !isBeeping){
   audio.currentTime=0;
   audio.play().catch(()=>{});
   isBeeping=true;
@@ -205,15 +204,15 @@ onValue(ref(db,"orders"),snap=>{
   }
  }
 
- /* 🔕 STOP BEEP */
- if(pendingCount===0 && isBeeping){
+ /* 🔕 STOP */
+ if(pending===0 && isBeeping){
   audio.pause();
   audio.currentTime=0;
   isBeeping=false;
  }
 });
 
-/* VERIFY + DELIVER */
+/* VERIFY */
 window.verify=(orderId,qty)=>{
  onValue(ref(db,"stock"),snap=>{
   let taken=[];
