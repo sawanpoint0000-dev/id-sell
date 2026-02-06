@@ -88,7 +88,7 @@ email"></textarea>
 
 <button class="logout" onclick="logout()">Logout</button>
 
-<!-- Audio Alert -->
+<!-- 🔊 ALERT AUDIO -->
 <audio id="alertAudio" loop>
  <source src="alert.mp3" type="audio/mpeg">
 </audio>
@@ -100,32 +100,38 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebas
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import { getDatabase, ref, set, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
+/* 🔥 FIREBASE */
 const app = initializeApp({
  apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
  databaseURL:"https://database-7209-default-rtdb.firebaseio.com"
 });
-
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
-let audioStarted = false;
+/* 🔔 BEEP CONTROL */
+let audioAllowed = false;
+let isBeeping = false;
 
 /* LOGIN */
-window.login=()=> {
+window.login = ()=>{
  signInWithEmailAndPassword(auth,email.value.trim(),pass.value)
  .then(()=>{
   loginCard.style.display="none";
   panel.style.display="block";
-  // Allow audio to play after login click
-  const audio = document.getElementById("alertAudio");
-  audio.play().catch(()=>console.log("Audio autoplay blocked, interaction needed"));
-  audioStarted = true;
+
+  const audio=document.getElementById("alertAudio");
+  audio.volume=1;
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime=0;
+    audioAllowed=true;
+  }).catch(()=>{});
  })
  .catch(e=>alert(e.message));
 };
 
 /* LOGOUT */
-window.logout=()=> {
+window.logout=()=>{
  signOut(auth).then(()=>{
   panel.style.display="none";
   loginCard.style.display="block";
@@ -133,18 +139,15 @@ window.logout=()=> {
 };
 
 /* PRICE */
-window.savePrice=()=> {
+window.savePrice=()=>{
  set(ref(db,"settings/pricePerId"),Number(price.value));
- console.log("Price updated ✅");
 };
 
 /* ADD STOCK */
-window.addIDs=()=> {
+window.addIDs=()=>{
  const lines=ids.value.trim().split("\n");
- if(lines.length%4!==0) {
-   console.log("Each ID needs 4 lines");
-   return;
- }
+ if(lines.length%4!==0) return alert("4 lines per ID required");
+
  for(let i=0;i<lines.length;i+=4){
   push(ref(db,"stock"),{
    username:lines[i],
@@ -155,7 +158,6 @@ window.addIDs=()=> {
   });
  }
  ids.value="";
- console.log("IDs added ✅");
 };
 
 /* STOCK COUNT */
@@ -165,12 +167,16 @@ onValue(ref(db,"stock"),snap=>{
  stock.innerText=c;
 });
 
-/* PENDING ORDERS */
+/* 🔥 PENDING ORDERS + AUTO BEEP */
 onValue(ref(db,"orders"),snap=>{
  orders.innerHTML="";
+ let pendingCount=0;
+
  snap.forEach(o=>{
   const v=o.val();
   if(v.status==="pending"){
+   pendingCount++;
+
    const d=document.createElement("div");
    d.className="order";
    d.innerHTML=`
@@ -178,18 +184,33 @@ onValue(ref(db,"orders"),snap=>{
     <b>Qty:</b> ${v.qty}
     <b>Amount:</b> ₹${v.amount}
     <b>UTR:</b> ${v.utr || "N/A"}
-    <button class="verify" onclick="verify('${o.key}',${v.qty})">Verify & Deliver</button>
+    <button class="verify" onclick="verify('${o.key}',${v.qty})">
+      Verify & Deliver
+    </button>
    `;
    orders.appendChild(d);
-
-   // Play alert sound and vibrate
-   if(audioStarted){
-     const audio = document.getElementById("alertAudio");
-     audio.play().catch(()=>console.log("Audio blocked"));
-     if(navigator.vibrate) navigator.vibrate([500,200,500,200]);
-   }
   }
  });
+
+ const audio=document.getElementById("alertAudio");
+
+ /* 🔔 START BEEP */
+ if(pendingCount>0 && audioAllowed && !isBeeping){
+  audio.currentTime=0;
+  audio.play().catch(()=>{});
+  isBeeping=true;
+
+  if(navigator.vibrate){
+   navigator.vibrate([800,300,800,300,800]);
+  }
+ }
+
+ /* 🔕 STOP BEEP */
+ if(pendingCount===0 && isBeeping){
+  audio.pause();
+  audio.currentTime=0;
+  isBeeping=false;
+ }
 });
 
 /* VERIFY + DELIVER */
@@ -201,11 +222,7 @@ window.verify=(orderId,qty)=>{
     taken.push({id:s.key,...s.val()});
    }
   });
-
-  if(taken.length<qty){
-   console.log("Not enough stock ❌");
-   return;
-  }
+  if(taken.length<qty) return alert("Not enough stock");
 
   taken.forEach(id=>{
    update(ref(db,"stock/"+id.id),{sold:true});
@@ -216,9 +233,7 @@ window.verify=(orderId,qty)=>{
     email:id.email
    });
   });
-
   update(ref(db,"orders/"+orderId),{status:"verified"});
-  console.log("Order verified & delivered ✅");
  });
 };
 </script>
