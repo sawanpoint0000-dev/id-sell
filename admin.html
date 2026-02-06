@@ -53,7 +53,6 @@ button{
 <body>
 <div class="container">
 
-<!-- LOGIN -->
 <div class="card" id="loginCard">
 <h2>🔐 Admin Login</h2>
 <input id="email" placeholder="Admin Email">
@@ -61,42 +60,36 @@ button{
 <button onclick="login()">Login</button>
 </div>
 
-<!-- PANEL -->
 <div class="card" id="panel" style="display:none">
 <h2>⚙️ Admin Panel</h2>
 
 <input id="price" type="number" placeholder="Price per ID">
 <button onclick="savePrice()">Update Price</button>
 
-<hr style="margin:16px 0">
+<hr>
 
-<textarea id="ids" rows="6" placeholder="Add IDs (4 lines per ID)
-username
+<textarea id="ids" rows="6" placeholder="username
 password
 phone
 email"></textarea>
-<button onclick="addIDs()">Add IDs to Stock</button>
-
-<hr style="margin:16px 0">
+<button onclick="addIDs()">Add IDs</button>
 
 <h3>📦 Available Stock: <span id="stock">0</span></h3>
-
-<hr style="margin:16px 0">
 
 <h3>⏳ Pending Orders</h3>
 <div id="orders"></div>
 
 <button class="logout" onclick="logout()">Logout</button>
 
-<!-- 🔔 SOUND FILE (same folder me beep.mp3) -->
-<audio id="alertAudio" src="beep.mp3" loop></audio>
-
+<audio id="alertAudio">
+ <source src="beep.mp3" type="audio/mpeg">
+</audio>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-import { getDatabase, ref, set, push, onValue, update } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 const app = initializeApp({
  apiKey:"AIzaSyChBGm2SO7uuW9gIhpFH-MDFzWs0gp9eps",
@@ -106,52 +99,35 @@ const app = initializeApp({
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
-/* 🔔 SOUND FLAGS */
-let audioAllowed = false;
-let isBeeping = false;
-
 /* LOGIN */
-window.login=()=> {
- signInWithEmailAndPassword(auth,email.value.trim(),pass.value)
+window.login=()=>{
+ signInWithEmailAndPassword(auth,email.value,pass.value)
  .then(()=>{
   loginCard.style.display="none";
   panel.style.display="block";
-
-  // 🔔 SOUND permission unlock
-  const audio = document.getElementById("alertAudio");
-  audio.volume = 1;
-  audio.play().then(()=>{
-    audio.pause();
-    audio.currentTime = 0;
-    audioAllowed = true;
-  }).catch(()=>{});
  })
  .catch(e=>alert(e.message));
 };
 
 /* LOGOUT */
-window.logout=()=> {
- signOut(auth).then(()=>{
-  panel.style.display="none";
-  loginCard.style.display="block";
- });
-};
+window.logout=()=>signOut(auth).then(()=>{
+ panel.style.display="none";
+ loginCard.style.display="block";
+});
 
 /* PRICE */
-window.savePrice=()=> {
- set(ref(db,"settings/pricePerId"),Number(price.value));
-};
+window.savePrice=()=>set(ref(db,"settings/pricePerId"),Number(price.value));
 
-/* ADD STOCK */
-window.addIDs=()=> {
- const lines=ids.value.trim().split("\n");
- if(lines.length%4!==0) return;
- for(let i=0;i<lines.length;i+=4){
+/* ADD IDS */
+window.addIDs=()=>{
+ const l=ids.value.trim().split("\n");
+ if(l.length%4!==0) return alert("4 lines per ID");
+ for(let i=0;i<l.length;i+=4){
   push(ref(db,"stock"),{
-   username:lines[i],
-   password:lines[i+1],
-   phone:lines[i+2],
-   email:lines[i+3],
+   username:l[i],
+   password:l[i+1],
+   phone:l[i+2],
+   email:l[i+3],
    sold:false
   });
  }
@@ -159,82 +135,58 @@ window.addIDs=()=> {
 };
 
 /* STOCK COUNT */
-onValue(ref(db,"stock"),snap=>{
+onValue(ref(db,"stock"),s=>{
  let c=0;
- snap.forEach(s=>{ if(!s.val().sold) c++; });
+ s.forEach(x=>{ if(!x.val().sold) c++; });
  stock.innerText=c;
 });
 
-/* 🔥 PENDING ORDERS → CONTINUOUS BEEP */
+/* ORDERS */
 onValue(ref(db,"orders"),snap=>{
  orders.innerHTML="";
- let pendingCount = 0;
-
  snap.forEach(o=>{
   const v=o.val();
   if(v.status==="pending"){
-   pendingCount++;
-
    const d=document.createElement("div");
    d.className="order";
    d.innerHTML=`
-    <b>Order ID:</b> ${o.key}
+    <b>Order:</b> ${o.key}
     <b>Qty:</b> ${v.qty}
     <b>Amount:</b> ₹${v.amount}
-    <b>UTR:</b> ${v.utr || "N/A"}
-    <button class="verify" onclick="verify('${o.key}',${v.qty})">
-      Verify & Deliver
-    </button>
+    <button class="verify" onclick="verify('${o.key}',${v.qty})">Verify</button>
    `;
    orders.appendChild(d);
+
+   document.getElementById("alertAudio").play().catch(()=>{});
+   navigator.vibrate?.(300);
   }
  });
-
- const audio = document.getElementById("alertAudio");
-
- // 🔔 START BEEP
- if(pendingCount > 0 && audioAllowed && !isBeeping){
-  audio.currentTime = 0;
-  audio.play().catch(()=>{});
-  isBeeping = true;
-
-  if(navigator.vibrate){
-    navigator.vibrate([600,300,600,300]);
-  }
- }
-
- // 🔕 STOP BEEP
- if(pendingCount === 0 && isBeeping){
-  audio.pause();
-  audio.currentTime = 0;
-  isBeeping = false;
- }
 });
 
-/* VERIFY + DELIVER */
-window.verify=(orderId,qty)=>{
- onValue(ref(db,"stock"),snap=>{
-  let taken=[];
-  snap.forEach(s=>{
-   if(!s.val().sold && taken.length<qty){
-    taken.push({id:s.key,...s.val()});
-   }
-  });
-
-  if(taken.length<qty) return;
-
-  taken.forEach(id=>{
-   update(ref(db,"stock/"+id.id),{sold:true});
-   push(ref(db,"deliveries/"+orderId),{
-    username:id.username,
-    password:id.password,
-    phone:id.phone,
-    email:id.email
-   });
-  });
-
-  update(ref(db,"orders/"+orderId),{status:"verified"});
+/* VERIFY (FIXED) */
+window.verify=async(orderId,qty)=>{
+ const snap=await get(ref(db,"stock"));
+ let free=[];
+ snap.forEach(s=>{
+  if(!s.val().sold && free.length<qty){
+   free.push({id:s.key,...s.val()});
+  }
  });
+
+ if(free.length<qty) return alert("Not enough stock");
+
+ for(const id of free){
+  await update(ref(db,"stock/"+id.id),{sold:true});
+  await push(ref(db,"deliveries/"+orderId),{
+   username:id.username,
+   password:id.password,
+   phone:id.phone,
+   email:id.email
+  });
+ }
+
+ await update(ref(db,"orders/"+orderId),{status:"verified"});
+ alert("Delivered successfully ✅");
 };
 </script>
 </body>
